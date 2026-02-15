@@ -1,1244 +1,1383 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1">
-<title>Lava Flow — Premium</title>
-<style>
-*{margin:0;padding:0;box-sizing:border-box}
-html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',sans-serif;background:#0a0a0c;-webkit-tap-highlight-color:transparent}
-
-#canvas{position:fixed;top:0;left:0;width:100%;height:100%;touch-action:none;z-index:1}
-
-/* Minimal UI - Bubble Button */
-.menu-bubble{position:fixed;bottom:30px;right:30px;width:50px;height:50px;border-radius:50%;background:rgba(255,255,255,0.06);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.08);z-index:1000;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.4s cubic-bezier(0.4,0,0.2,1);box-shadow:0 4px 20px rgba(0,0,0,0.3)}
-.menu-bubble:hover{background:rgba(255,255,255,0.1);transform:scale(1.05)}
-.menu-bubble svg{width:22px;height:22px;stroke:rgba(255,255,255,0.6);stroke-width:1.5;fill:none;transition:transform 0.3s}
-.menu-bubble.open{transform:rotate(45deg)}
-
-/* Glass Panel */
-.glass-panel{position:fixed;bottom:100px;right:30px;width:280px;max-height:calc(100vh - 150px);background:rgba(20,20,25,0.85);backdrop-filter:blur(40px);-webkit-backdrop-filter:blur(40px);border-radius:24px;border:1px solid rgba(255,255,255,0.08);padding:0;opacity:0;transform:translateY(20px) scale(0.95);pointer-events:none;transition:all 0.4s cubic-bezier(0.4,0,0.2,1);z-index:999;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.5)}
-.glass-panel.open{opacity:1;transform:translateY(0) scale(1);pointer-events:all}
-
-.panel-header{padding:20px 20px 15px;border-bottom:1px solid rgba(255,255,255,0.05)}
-.panel-title{font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:2px;color:rgba(255,255,255,0.4)}
-
-/* Mood Selector */
-.mood-section{padding:15px 20px;border-bottom:1px solid rgba(255,255,255,0.05)}
-.mood-grid{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
-.mood-btn{padding:8px 14px;border-radius:20px;border:1px solid rgba(255,255,255,0.1);background:transparent;color:rgba(255,255,255,0.5);font-size:12px;font-weight:400;cursor:pointer;transition:all 0.3s;display:flex;align-items:center;gap:6px}
-.mood-btn:hover{background:rgba(255,255,255,0.05)}
-.mood-btn.active{background:rgba(255,255,255,0.1);border-color:rgba(255,255,255,0.2);color:#fff}
-.mood-preview{width:12px;height:12px;border-radius:50%;display:flex;overflow:hidden}
-.mood-preview span{flex:1;height:100%}
-
-/* Category Bubbles */
-.category-section{padding:15px 20px}
-.category-bubble{padding:12px 16px;border-radius:16px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.05);margin-bottom:10px;cursor:pointer;transition:all 0.3s}
-.category-bubble:hover{background:rgba(255,255,255,0.06)}
-.category-bubble.open{background:rgba(255,255,255,0.08)}
-.category-header{display:flex;align-items:center;justify-content:space-between}
-.category-title{font-size:13px;font-weight:400;color:rgba(255,255,255,0.7)}
-.category-icon{width:16px;height:16px;stroke:rgba(255,255,255,0.4);transition:transform 0.3s}
-.category-bubble.open .category-icon{transform:rotate(180deg)}
-
-.category-content{max-height:0;overflow:hidden;transition:max-height 0.4s ease}
-.category-bubble.open .category-content{max-height:300px}
-
-/* Sliders */
-.slider-group{padding-top:12px}
-.slider-item{margin-bottom:12px}
-.slider-label{display:flex;justify-content:space-between;margin-bottom:6px}
-.slider-label span{font-size:10px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:1px}
-.slider-label em{font-size:10px;color:rgba(255,255,255,0.6);font-style:normal}
-input[type="range"]{-webkit-appearance:none;appearance:none;width:100%;height:3px;border-radius:2px;background:rgba(255,255,255,0.1);outline:none;cursor:pointer}
-input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:#fff;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.3);transition:transform 0.2s}
-input[type="range"]::-webkit-slider-thumb:hover{transform:scale(1.1)}
-
-/* Toggle */
-.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0}
-.toggle-label{font-size:12px;color:rgba(255,255,255,0.6)}
-.toggle{width:40px;height:22px;border-radius:11px;background:rgba(255,255,255,0.1);position:relative;cursor:pointer;transition:background 0.3s}
-.toggle.on{background:rgba(120,200,255,0.3)}
-.toggle::after{content:'';position:absolute;width:18px;height:18px;border-radius:50%;background:rgba(255,255,255,0.8);top:2px;left:2px;transition:transform 0.3s}
-.toggle.on::after{transform:translateX(18px)}
-
-/* Timer Display */
-.timer-display{position:fixed;top:30px;left:50%;transform:translateX(-50%);background:rgba(20,20,25,0.7);backdrop-filter:blur(20px);padding:12px 28px;border-radius:30px;border:1px solid rgba(255,255,255,0.08);opacity:0;transition:opacity 0.4s;z-index:100}
-.timer-display.active{opacity:1}
-.timer-text{font-size:24px;font-weight:200;color:rgba(255,255,255,0.9);letter-spacing:4px}
-
-/* Breathing Guide */
-.breathing-guide{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none;z-index:50;opacity:0;transition:opacity 0.5s}
-.breathing-guide.active{opacity:1}
-.breath-circle{width:200px;height:200px;border-radius:50%;border:1px solid rgba(255,255,255,0.1);display:flex;align-items:center;justify-content:center}
-.breath-text{font-size:14px;font-weight:300;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:3px}
-
-/* Hint */
-.hint{position:fixed;bottom:100px;left:50%;transform:translateX(-50%);font-size:11px;color:rgba(255,255,255,0.2);text-align:center;pointer-events:none;z-index:10;opacity:0;transition:opacity 0.5s}
-.hint.show{opacity:1;animation:fadeHint 3s forwards}
-@keyframes fadeHint{0%,70%{opacity:0.4}100%{opacity:0}}
-
-/* Remix Button */
-.remix-btn{position:absolute;top:15px;right:15px;width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.3s}
-.remix-btn:hover{background:rgba(255,255,255,0.1);transform:rotate(180deg)}
-.remix-btn svg{width:16px;height:16px;stroke:rgba(255,255,255,0.5)}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+    <title>Lava Lamp - Immersive 3D Experience</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            overflow: hidden;
+            background: #0a0a0f;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            touch-action: none;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        
+        #canvas-container {
+            width: 100vw;
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+        }
+        
+        canvas { display: block; }
+        
+        .mood-selector {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 12px;
+            z-index: 100;
+        }
+        
+        .mood-bubble {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            border: 2px solid rgba(255,255,255,0.3);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .mood-bubble:hover {
+            transform: scale(1.15);
+            border-color: rgba(255,255,255,0.6);
+        }
+        
+        .mood-bubble.active {
+            border-color: #fff;
+            box-shadow: 0 0 25px currentColor;
+            transform: scale(1.1);
+        }
+        
+        .mood-cosmic { background: linear-gradient(135deg, #667eea, #764ba2); color: #667eea; }
+        .mood-ocean { background: linear-gradient(135deg, #00c6fb, #005bea); color: #00c6fb; }
+        .mood-ember { background: linear-gradient(135deg, #f093fb, #f5576c); color: #f5576c; }
+        .mood-aurora { background: linear-gradient(135deg, #4facfe, #00f2fe); color: #4facfe; }
+        .mood-sunset { background: linear-gradient(135deg, #fa709a, #fee140); color: #fa709a; }
+        .mood-nebula { background: linear-gradient(135deg, #a8edea, #fed6e3); color: #a8edea; }
+        
+        .quality-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 100;
+        }
+        
+        .quality-btn {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: #fff;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .quality-btn:hover { background: rgba(255,255,255,0.2); }
+        .quality-btn.ultra {
+            background: rgba(255,215,0,0.2);
+            border-color: rgba(255,215,0,0.5);
+        }
+        
+        .instructions {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: rgba(255,255,255,0.9);
+            text-align: center;
+            font-size: 16px;
+            line-height: 1.8;
+            z-index: 100;
+            pointer-events: none;
+            opacity: 1;
+            transition: opacity 0.8s ease;
+            text-shadow: 0 2px 20px rgba(0,0,0,0.8);
+        }
+        
+        .instructions.hidden { opacity: 0; }
+        .instructions h2 { font-size: 28px; margin-bottom: 20px; font-weight: 300; letter-spacing: 2px; }
+        .instructions p { opacity: 0.8; }
+        
+        .audio-btn {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: #fff;
+            cursor: pointer;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+        
+        .audio-btn:hover { background: rgba(255,255,255,0.2); }
+        .audio-btn svg { width: 20px; height: 20px; }
+        .audio-waves { transition: opacity 0.3s ease; opacity: 0.3; }
+        .audio-btn.active .audio-waves { opacity: 1; }
+        
+        .loading {
+            position: fixed;
+            inset: 0;
+            background: #0a0a0f;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            transition: opacity 0.8s ease;
+        }
+        
+        .loading.hidden { opacity: 0; pointer-events: none; }
+        
+        .loading-lamp {
+            width: 60px;
+            height: 120px;
+            position: relative;
+            margin-bottom: 30px;
+        }
+        
+        .loading-blob {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 30px;
+            height: 30px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 50%;
+            animation: blobRise 2s ease-in-out infinite;
+        }
+        
+        @keyframes blobRise {
+            0%, 100% { bottom: 20px; transform: translateX(-50%) scale(1); }
+            50% { bottom: 80px; transform: translateX(-50%) scale(1.3); }
+        }
+        
+        .loading-text {
+            color: #fff;
+            font-size: 18px;
+            opacity: 0.8;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; }
+        }
+        
+        .fps-counter {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: rgba(255,255,255,0.5);
+            font-size: 12px;
+            z-index: 100;
+            font-family: monospace;
+        }
+    </style>
 </head>
 <body>
-<canvas id="canvas"></canvas>
-
-<div class="timer-display" id="timerDisplay"><div class="timer-text" id="timerText">5:00</div></div>
-
-<div class="breathing-guide" id="breathingGuide">
-<div class="breath-circle"><span class="breath-text" id="breathText">breathe</span></div>
-</div>
-
-<div class="hint" id="hint">touch the lamp to interact</div>
-
-<div class="menu-bubble" id="menuBubble">
-<svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-</div>
-
-<div class="glass-panel" id="glassPanel">
-<div class="panel-header">
-<div class="panel-title">Lava Flow</div>
-<button class="remix-btn" id="remixBtn" title="Remix Colors">
-<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
-</button>
-</div>
-
-<div class="mood-section">
-<div class="panel-title">Color Mood</div>
-<div class="mood-grid" id="moodGrid"></div>
-</div>
-
-<div class="category-section">
-<div class="category-bubble" data-category="visual">
-<div class="category-header">
-<span class="category-title">Visual</span>
-<svg class="category-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="6 9 12 15 18 9"/></svg>
-</div>
-<div class="category-content">
-<div class="slider-group">
-<div class="slider-item">
-<div class="slider-label"><span>Size</span><em id="sizeVal">60</em></div>
-<input type="range" id="sizeSlider" min="30" max="100" value="60">
-</div>
-<div class="slider-item">
-<div class="slider-label"><span>Speed</span><em id="speedVal">50</em></div>
-<input type="range" id="speedSlider" min="20" max="100" value="50">
-</div>
-<div class="slider-item">
-<div class="slider-label"><span>Glow</span><em id="glowVal">70</em></div>
-<input type="range" id="glowSlider" min="0" max="100" value="70">
-</div>
-</div>
-</div>
-</div>
-
-<div class="category-bubble" data-category="audio">
-<div class="category-header">
-<span class="category-title">Audio</span>
-<svg class="category-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="6 9 12 15 18 9"/></svg>
-</div>
-<div class="category-content">
-<div class="slider-group">
-<div class="slider-item">
-<div class="slider-label"><span>Intensity</span><em id="audioVal">50</em></div>
-<input type="range" id="audioSlider" min="0" max="100" value="50">
-</div>
-<div class="toggle-row">
-<span class="toggle-label">Binaural (Focus)</span>
-<div class="toggle" id="binauralFocus"></div>
-</div>
-<div class="toggle-row">
-<span class="toggle-label">Binaural (Relax)</span>
-<div class="toggle" id="binauralRelax"></div>
-</div>
-</div>
-</div>
-</div>
-
-<div class="category-bubble" data-category="session">
-<div class="category-header">
-<span class="category-title">Session</span>
-<svg class="category-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="6 9 12 15 18 9"/></svg>
-</div>
-<div class="category-content">
-<div class="slider-group">
-<div class="slider-item">
-<div class="slider-label"><span>Timer</span><em id="timerVal">Off</em></div>
-<input type="range" id="timerSlider" min="0" max="30" value="0" step="5">
-</div>
-<div class="toggle-row">
-<span class="toggle-label">Breathing Guide</span>
-<div class="toggle" id="breathingToggle"></div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-
-<script>
-// === CONFIGURATION ===
-const MOODS = {
-cosmic: { name: 'Cosmic', colors: ['#4a00e0', '#8e2de2', '#00d4ff'], bg: '#0a0812' },
-ocean: { name: 'Ocean', colors: ['#006994', '#00b4d8', '#90e0ef', '#48cae4'], bg: '#051923' },
-ember: { name: 'Ember', colors: ['#ff4500', '#ff6b35', '#f7931e', '#ffb347'], bg: '#120805' },
-aurora: { name: 'Aurora', colors: ['#00ff87', '#60efff', '#ff00ff', '#7b2cbf'], bg: '#050a0a' },
-nebula: { name: 'Nebula', colors: ['#e040fb', '#536dfe', '#18ffff', '#ff4081'], bg: '#0a0510' },
-forest: { name: 'Forest', colors: ['#2d5a27', '#5e8c3a', '#a3be8c', '#8fbc8f'], bg: '#0a0f0a' },
-sunset: { name: 'Sunset', colors: ['#ff6b6b', '#ffa500', '#ff4757', '#ffc048'], bg: '#100a08' },
-abyss: { name: 'Abyss', colors: ['#1a1a2e', '#16213e', '#0f3460', '#e94560'], bg: '#050508' }
-};
-
-// === STATE ===
-let state = {
-zoom: 1,
-mood: 'cosmic',
-audioIntensity: 0.5,
-size: 60,
-speed: 0.5,
-glow: 0.7,
-binauralMode: null, // 'focus' | 'relax' | null
-breathingOn: false,
-timerMins: 0,
-timerRemaining: 0
-};
-
-// Load saved mood
-const savedMood = localStorage.getItem('lavaMood');
-if (savedMood && MOODS[savedMood]) state.mood = savedMood;
-
-// === CANVAS SETUP ===
-const canvas = document.getElementById('canvas');
-const ctx = canvas.getContext('2d');
-let W, H, lampBounds;
-
-function resize() {
-W = canvas.width = window.innerWidth;
-H = canvas.height = window.innerHeight;
-// Lamp bounds - 85% of screen, centered
-const lampWidth = Math.min(W * 0.5, 400) * state.zoom;
-const lampHeight = Math.min(H * 0.85, 700) * state.zoom;
-lampBounds = {
-x: (W - lampWidth) / 2,
-y: (H - lampHeight) / 2,
-w: lampWidth,
-h: lampHeight
-};
-}
-resize();
-window.addEventListener('resize', resize);
-
-// === BLOB PHYSICS ===
-class Blob {
-constructor(x, y, radius) {
-this.x = x;
-this.y = y;
-this.radius = radius || 30 + Math.random() * 40;
-this.vx = 0;
-this.vy = 0;
-this.temperature = 0.5; // 0=cold(sink), 1=hot(rise)
-this.points = []; // Soft body points
-this.colorPhase = Math.random();
-this.colorSpeed = 0.2 + Math.random() * 0.3;
-this.age = 0;
-this.merging = false;
-this.id = Math.random();
-
-// Generate soft body points around perimeter
-const numPoints = 8 + Math.floor(Math.random() * 4);
-for (let i = 0; i < numPoints; i++) {
-const angle = (i / numPoints) * Math.PI * 2;
-this.points.push({
-angle: angle,
-offset: 0,
-velocity: 0
-});
-}
-}
-
-getEffectiveRadius() {
-return this.radius * (0.8 + state.size / 100 * 0.4);
-}
-
-getColor(time) {
-const mood = MOODS[state.mood];
-const colors = mood.colors;
-const t = (this.colorPhase + time * 0.0001 * this.colorSpeed) % 1;
-const idx = Math.floor(t * colors.length);
-const nextIdx = (idx + 1) % colors.length;
-const blend = (t * colors.length) % 1;
-return this.lerpColor(colors[idx], colors[nextIdx], blend);
-}
-
-lerpColor(c1, c2, t) {
-const r1 = parseInt(c1.slice(1, 3), 16);
-const g1 = parseInt(c1.slice(3, 5), 16);
-const b1 = parseInt(c1.slice(5, 7), 16);
-const r2 = parseInt(c2.slice(1, 3), 16);
-const g2 = parseInt(c2.slice(3, 5), 16);
-const b2 = parseInt(c2.slice(5, 7), 16);
-const r = Math.round(r1 + (r2 - r1) * t);
-const g = Math.round(g1 + (g2 - g1) * t);
-const b = Math.round(b1 + (b2 - b1) * t);
-return `rgb(${r},${g},${b})`;
-}
-
-update(dt, blobs, heatPoints, currents) {
-this.age += dt;
-const effectiveRadius = this.getEffectiveRadius();
-
-// Temperature dynamics - heat rises, cools at top
-const lampTop = lampBounds.y + lampBounds.h * 0.15;
-const lampBottom = lampBounds.y + lampBounds.h * 0.85;
-const relativeY = (this.y - lampTop) / (lampBottom - lampTop);
-
-// Convection: hot rises, cool sinks
-this.temperature -= 0.001 * dt * 60 * relativeY; // Cool at top
-this.temperature += 0.0005 * dt * 60 * (1 - relativeY); // Warm at bottom
-this.temperature = Math.max(0, Math.min(1, this.temperature));
-
-// Apply heat from touch points
-for (const heat of heatPoints) {
-const dx = heat.x - this.x;
-const dy = heat.y - this.y;
-const dist = Math.sqrt(dx * dx + dy * dy);
-if (dist < 150) {
-const intensity = (1 - dist / 150) * heat.strength;
-this.temperature += intensity * 0.02 * dt * 60;
-}
-}
-
-// Velocity from temperature (convection)
-const baseRise = -0.3 - this.temperature * 0.8;
-this.vy += (baseRise - this.vy) * 0.02 * state.speed;
-
-// Random wobble
-this.vx += (Math.random() - 0.5) * 0.02 * state.speed;
-
-// Apply currents from swipes
-for (const current of currents) {
-const dx = this.x - current.x;
-const dy = this.y - current.y;
-const dist = Math.sqrt(dx * dx + dy * dy);
-if (dist < current.radius) {
-const factor = (1 - dist / current.radius) * current.strength;
-this.vx += current.vx * factor;
-this.vy += current.vy * factor;
-}
-}
-
-// Drag
-this.vx *= 0.99;
-this.vy *= 0.995;
-
-// Movement
-this.x += this.vx * dt * 60;
-this.y += this.vy * dt * 60;
-
-// Boundary constraints (lamp walls)
-const margin = effectiveRadius;
-const leftWall = lampBounds.x + lampBounds.w * 0.12 + margin;
-const rightWall = lampBounds.x + lampBounds.w * 0.88 - margin;
-const topWall = lampBounds.y + lampBounds.h * 0.15 + margin;
-const bottomWall = lampBounds.y + lampBounds.h * 0.85 - margin;
-
-if (this.x < leftWall) { this.x = leftWall; this.vx *= -0.3; }
-if (this.x > rightWall) { this.x = rightWall; this.vx *= -0.3; }
-if (this.y < topWall) { this.y = topWall; this.vy *= -0.3; this.temperature *= 0.9; }
-if (this.y > bottomWall) { this.y = bottomWall; this.vy *= -0.3; }
-
-// Soft body physics
-for (let p of this.points) {
-p.velocity += (Math.random() - 0.5) * 0.3;
-p.velocity *= 0.95;
-p.offset += p.velocity;
-p.offset *= 0.9; // Spring back
-p.offset = Math.max(-effectiveRadius * 0.3, Math.min(effectiveRadius * 0.3, p.offset));
-}
-}
-
-draw(time) {
-const effectiveRadius = this.getEffectiveRadius();
-const color = this.getColor(time);
-
-ctx.save();
-
-// Build path with soft body deformation
-ctx.beginPath();
-for (let i = 0; i <= this.points.length; i++) {
-const p = this.points[i % this.points.length];
-const nextP = this.points[(i + 1) % this.points.length];
-const r = effectiveRadius + p.offset * 0.5;
-const x = this.x + Math.cos(p.angle) * r;
-const y = this.y + Math.sin(p.angle) * r;
-
-if (i === 0) {
-ctx.moveTo(x, y);
-} else {
-// Smooth curve
-const prevP = this.points[(i - 1 + this.points.length) % this.points.length];
-const pr = effectiveRadius + prevP.offset * 0.5;
-const px = this.x + Math.cos(prevP.angle) * pr;
-const py = this.y + Math.sin(prevP.angle) * pr;
-const nx = this.x + Math.cos(p.angle) * r;
-const ny = this.y + Math.sin(p.angle) * r;
-const cpx = (px + nx) / 2;
-const cpy = (py + ny) / 2;
-ctx.quadraticCurveTo(px, py, cpx, cpy);
-}
-}
-ctx.closePath();
-
-// Gradient fill
-const grad = ctx.createRadialGradient(
-this.x - effectiveRadius * 0.2,
-this.y - effectiveRadius * 0.2,
-0,
-this.x,
-this.y,
-effectiveRadius
-);
-grad.addColorStop(0, this.adjustBrightness(color, 40));
-grad.addColorStop(0.5, color);
-grad.addColorStop(0.8, this.adjustBrightness(color, -20));
-grad.addColorStop(1, this.adjustBrightness(color, -40));
-
-ctx.fillStyle = grad;
-ctx.fill();
-
-// Glow effect
-if (state.glow > 0.2) {
-ctx.shadowColor = color;
-ctx.shadowBlur = 30 * state.glow;
-ctx.fill();
-ctx.shadowBlur = 60 * state.glow * 0.5;
-ctx.fill();
-}
-
-// Rainbow edge (subtle psychedelic)
-if (state.glow > 0.3) {
-ctx.globalAlpha = 0.15 * state.glow;
-ctx.strokeStyle = `hsl(${(time * 0.05) % 360}, 70%, 60%)`;
-ctx.lineWidth = 2;
-ctx.stroke();
-}
-
-ctx.restore();
-}
-
-adjustBrightness(color, amount) {
-const match = color.match(/rgb\((\d+),(\d+),(\d+)\)/);
-if (!match) return color;
-let r = parseInt(match[1]) + amount;
-let g = parseInt(match[2]) + amount;
-let b = parseInt(match[3]) + amount;
-r = Math.max(0, Math.min(255, r));
-g = Math.max(0, Math.min(255, g));
-b = Math.max(0, Math.min(255, b));
-return `rgb(${r},${g},${b})`;
-}
-}
-
-// === BLOB SYSTEM ===
-let blobs = [];
-let heatPoints = [];
-let currents = [];
-let mergeParticles = [];
-
-function initBlobs() {
-blobs = [];
-const numBlobs = 8 + Math.floor(Math.random() * 4);
-for (let i = 0; i < numBlobs; i++) {
-const x = lampBounds.x + lampBounds.w * (0.2 + Math.random() * 0.6);
-const y = lampBounds.y + lampBounds.h * (0.3 + Math.random() * 0.5);
-blobs.push(new Blob(x, y, 25 + Math.random() * 45));
-}
-}
-
-function updateBlobs(dt, time) {
-const effectiveRadius = (blob) => blob.getEffectiveRadius();
-
-// Check for merging
-for (let i = 0; i < blobs.length; i++) {
-for (let j = i + 1; j < blobs.length; j++) {
-const b1 = blobs[i], b2 = blobs[j];
-const dx = b2.x - b1.x;
-const dy = b2.y - b1.y;
-const dist = Math.sqrt(dx * dx + dy * dy);
-const mergeThreshold = (effectiveRadius(b1) + effectiveRadius(b2)) * 0.6;
-
-if (dist < mergeThreshold && blobs.length > 4) {
-// Merge blobs
-const newRadius = Math.sqrt(effectiveRadius(b1) ** 2 + effectiveRadius(b2) ** 2);
-const newX = (b1.x + b2.x) / 2;
-const newY = (b1.y + b2.y) / 2;
-
-// Create merge particle
-mergeParticles.push({
-x: newX,
-y: newY,
-radius: Math.max(effectiveRadius(b1), effectiveRadius(b2)),
-life: 1,
-color: b1.getColor(time)
-});
-
-// Update b1 to be merged blob
-b1.x = newX;
-b1.y = newY;
-b1.radius = newRadius * 0.8;
-b1.temperature = (b1.temperature + b2.temperature) / 2;
-b1.vx = (b1.vx + b2.vx) / 2;
-b1.vy = (b1.vy + b2.vy) / 2;
-
-// Remove b2
-blobs.splice(j, 1);
-j--;
-
-// Trigger chime sound
-if (audioCtx && state.audioIntensity > 0.1) {
-playChime(newX, newY);
-}
-}
-}
-}
-
-// Occasionally split large blobs
-for (let i = 0; i < blobs.length; i++) {
-const b = blobs[i];
-if (b.radius > 60 && Math.random() < 0.001 && blobs.length < 15) {
-const newRadius = b.radius * 0.6;
-const angle = Math.random() * Math.PI * 2;
-const offset = newRadius * 0.5;
-
-const b2 = new Blob(
-b.x + Math.cos(angle) * offset,
-b.y + Math.sin(angle) * offset,
-newRadius
-);
-b.radius = newRadius;
-b2.temperature = b.temperature;
-b2.colorPhase = b.colorPhase + 0.5;
-blobs.push(b2);
-}
-}
-
-// Update each blob
-for (let blob of blobs) {
-blob.update(dt, blobs, heatPoints, currents);
-}
-}
-
-function drawBlobs(time) {
-for (let blob of blobs) {
-blob.draw(time);
-}
-}
-
-// === LAMP DRAWING ===
-function drawLamp(time) {
-const { x, y, w, h } = lampBounds;
-const mood = MOODS[state.mood];
-
-// Background gradient
-const bgGrad = ctx.createLinearGradient(0, 0, 0, H);
-bgGrad.addColorStop(0, mood.bg);
-bgGrad.addColorStop(0.5, adjustColor(mood.bg, 10));
-bgGrad.addColorStop(1, mood.bg);
-ctx.fillStyle = bgGrad;
-ctx.fillRect(0, 0, W, H);
-
-// Subtle background glow
-const bgGlow = ctx.createRadialGradient(W/2, H/2, 0, W/2, H/2, Math.max(W, H) * 0.6);
-bgGlow.addColorStop(0, hexToRgba(mood.colors[0], 0.08));
-bgGlow.addColorStop(1, 'transparent');
-ctx.fillStyle = bgGlow;
-ctx.fillRect(0, 0, W, H);
-
-// Lamp body - metallic base
-const baseHeight = h * 0.12;
-const baseWidth = w * 0.7;
-const baseX = x + (w - baseWidth) / 2;
-const baseY = y + h - baseHeight;
-
-// Base gradient (metallic)
-const baseGrad = ctx.createLinearGradient(baseX, baseY, baseX + baseWidth, baseY);
-baseGrad.addColorStop(0, '#1a1a1a');
-baseGrad.addColorStop(0.3, '#3a3a3a');
-baseGrad.addColorStop(0.5, '#4a4a4a');
-baseGrad.addColorStop(0.7, '#3a3a3a');
-baseGrad.addColorStop(1, '#1a1a1a');
-
-ctx.fillStyle = baseGrad;
-ctx.beginPath();
-ctx.roundRect(baseX, baseY, baseWidth, baseHeight, [0, 0, 8, 8]);
-ctx.fill();
-
-// Base highlight
-ctx.fillStyle = 'rgba(255,255,255,0.05)';
-ctx.fillRect(baseX + baseWidth * 0.1, baseY + 2, baseWidth * 0.3, 3);
-
-// Glass container shape
-const glassTop = y + h * 0.1;
-const glassBottom = baseY;
-const glassLeft = x + w * 0.1;
-const glassRight = x + w * 0.9;
-const glassWidth = glassRight - glassLeft;
-const glassHeight = glassBottom - glassTop;
-const curveWidth = w * 0.08;
-
-// Clip to glass area for blobs
-ctx.save();
-ctx.beginPath();
-ctx.moveTo(glassLeft + curveWidth, glassTop);
-ctx.lineTo(glassRight - curveWidth, glassTop);
-ctx.quadraticCurveTo(glassRight, glassTop, glassRight, glassTop + curveWidth);
-ctx.lineTo(glassRight, glassBottom - curveWidth);
-ctx.quadraticCurveTo(glassRight, glassBottom, glassRight - curveWidth, glassBottom);
-ctx.lineTo(glassLeft + curveWidth, glassBottom);
-ctx.quadraticCurveTo(glassLeft, glassBottom, glassLeft, glassBottom - curveWidth);
-ctx.lineTo(glassLeft, glassTop + curveWidth);
-ctx.quadraticCurveTo(glassLeft, glassTop, glassLeft + curveWidth, glassTop);
-ctx.closePath();
-ctx.clip();
-
-// Glass interior background
-const innerGrad = ctx.createLinearGradient(glassLeft, glassTop, glassRight, glassBottom);
-innerGrad.addColorStop(0, 'rgba(0,0,0,0.4)');
-innerGrad.addColorStop(0.5, 'rgba(0,0,0,0.2)');
-innerGrad.addColorStop(1, 'rgba(0,0,0,0.5)');
-ctx.fillStyle = innerGrad;
-ctx.fill();
-
-// Draw blobs inside glass
-drawBlobs(time);
-
-ctx.restore();
-
-// Glass container outline with reflections
-ctx.strokeStyle = 'rgba(255,255,255,0.1)';
-ctx.lineWidth = 2;
-ctx.stroke();
-
-// Glass reflections
-ctx.save();
-const reflectGrad = ctx.createLinearGradient(glassLeft, glassTop, glassLeft + glassWidth * 0.3, glassTop);
-reflectGrad.addColorStop(0, 'rgba(255,255,255,0.08)');
-reflectGrad.addColorStop(0.5, 'rgba(255,255,255,0.02)');
-reflectGrad.addColorStop(1, 'transparent');
-
-ctx.beginPath();
-ctx.moveTo(glassLeft + curveWidth * 0.5, glassTop + 20);
-ctx.lineTo(glassLeft + 5, glassBottom - 20);
-ctx.lineTo(glassLeft + 15, glassBottom - 20);
-ctx.lineTo(glassLeft + curveWidth * 0.5 + 10, glassTop + 20);
-ctx.closePath();
-ctx.fillStyle = reflectGrad;
-ctx.fill();
-ctx.restore();
-
-// Top cap (metallic)
-const capHeight = h * 0.08;
-const capWidth = w * 0.5;
-const capX = x + (w - capWidth) / 2;
-const capY = y;
-
-const capGrad = ctx.createLinearGradient(capX, capY, capX + capWidth, capY);
-capGrad.addColorStop(0, '#2a2a2a');
-capGrad.addColorStop(0.3, '#4a4a4a');
-capGrad.addColorStop(0.5, '#5a5a5a');
-capGrad.addColorStop(0.7, '#4a4a4a');
-capGrad.addColorStop(1, '#2a2a2a');
-
-ctx.fillStyle = capGrad;
-ctx.beginPath();
-ctx.roundRect(capX, capY, capWidth, capHeight, [8, 8, 0, 0]);
-ctx.fill();
-
-// Cap highlight
-ctx.fillStyle = 'rgba(255,255,255,0.08)';
-ctx.fillRect(capX + capWidth * 0.15, capY + 3, capWidth * 0.4, 2);
-
-// Draw merge particles
-for (let i = mergeParticles.length - 1; i >= 0; i--) {
-const p = mergeParticles[i];
-p.life -= 0.02;
-if (p.life <= 0) {
-mergeParticles.splice(i, 1);
-continue;
-}
-ctx.save();
-ctx.globalAlpha = p.life * 0.5;
-ctx.strokeStyle = p.color;
-ctx.lineWidth = 2;
-ctx.beginPath();
-ctx.arc(p.x, p.y, p.radius * (2 - p.life), 0, Math.PI * 2);
-ctx.stroke();
-ctx.restore();
-}
-
-// Draw touch heat indicators
-for (let i = heatPoints.length - 1; i >= 0; i--) {
-const h = heatPoints[i];
-h.life -= 0.03;
-if (h.life <= 0) {
-heatPoints.splice(i, 1);
-continue;
-}
-ctx.save();
-ctx.globalAlpha = h.life * 0.3;
-ctx.strokeStyle = MOODS[state.mood].colors[0];
-ctx.lineWidth = 1;
-ctx.beginPath();
-ctx.arc(h.x, h.y, 30 * (1 - h.life) + 10, 0, Math.PI * 2);
-ctx.stroke();
-ctx.restore();
-}
-
-// Update currents
-for (let i = currents.length - 1; i >= 0; i--) {
-currents[i].life -= 0.02;
-if (currents[i].life <= 0) {
-currents.splice(i, 1);
-}
-}
-}
-
-function adjustColor(hex, amount) {
-let r = parseInt(hex.slice(1, 3), 16) + amount;
-let g = parseInt(hex.slice(3, 5), 16) + amount;
-let b = parseInt(hex.slice(5, 7), 16) + amount;
-r = Math.max(0, Math.min(255, r));
-g = Math.max(0, Math.min(255, g));
-b = Math.max(0, Math.min(255, b));
-return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
-}
-
-function hexToRgba(hex, alpha) {
-const r = parseInt(hex.slice(1, 3), 16);
-const g = parseInt(hex.slice(3, 5), 16);
-const b = parseInt(hex.slice(5, 7), 16);
-return `rgba(${r},${g},${b},${alpha})`;
-}
-
-// === AUDIO SYSTEM ===
-let audioCtx = null;
-let masterGain = null;
-let droneOsc = null;
-let droneOsc2 = null;
-let padOsc = null;
-let binauralOsc1 = null;
-let binauralOsc2 = null;
-let lastChimeTime = 0;
-
-function initAudio() {
-if (audioCtx) return;
-audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-masterGain = audioCtx.createGain();
-masterGain.gain.value = 0;
-masterGain.connect(audioCtx.destination);
-
-// Drone layer (low bass)
-droneOsc = audioCtx.createOscillator();
-droneOsc.type = 'sine';
-droneOsc.frequency.value = 55;
-
-const droneGain = audioCtx.createGain();
-droneGain.gain.value = 0.4;
-droneOsc.connect(droneGain);
-droneGain.connect(masterGain);
-droneOsc.start();
-
-// Second drone (octave)
-droneOsc2 = audioCtx.createOscillator();
-droneOsc2.type = 'sine';
-droneOsc2.frequency.value = 82.5;
-
-const drone2Gain = audioCtx.createGain();
-drone2Gain.gain.value = 0.2;
-droneOsc2.connect(drone2Gain);
-drone2Gain.connect(masterGain);
-droneOsc2.start();
-
-// Pad layer (soft harmonics)
-padOsc = audioCtx.createOscillator();
-padOsc.type = 'triangle';
-padOsc.frequency.value = 220;
-
-const padGain = audioCtx.createGain();
-padGain.gain.value = 0;
-padOsc.connect(padGain);
-padGain.connect(masterGain);
-padOsc.start();
-window.padGain = padGain;
-}
-
-function updateAudio(dt) {
-if (!audioCtx || !masterGain) return;
-
-// Master volume based on intensity
-const targetVol = state.audioIntensity * 0.3;
-masterGain.gain.setTargetAtTime(targetVol, audioCtx.currentTime, 0.3);
-
-// Pad layer based on activity
-const activityLevel = Math.min(1, heatPoints.length * 0.3 + currents.length * 0.2);
-if (window.padGain) {
-window.padGain.gain.setTargetAtTime(activityLevel * 0.15, audioCtx.currentTime, 0.5);
-}
-
-// Binaural beats
-if (state.binauralMode && !binauralOsc1) {
-startBinaural();
-} else if (!state.binauralMode && binauralOsc1) {
-stopBinaural();
-}
-}
-
-function startBinaural() {
-if (!audioCtx) return;
-const baseFreq = state.binauralMode === 'focus' ? 200 : 150;
-const beatFreq = state.binauralMode === 'focus' ? 14 : 6; // Beta for focus, theta for relax
-
-binauralOsc1 = audioCtx.createOscillator();
-binauralOsc1.type = 'sine';
-binauralOsc1.frequency.value = baseFreq;
-
-binauralOsc2 = audioCtx.createOscillator();
-binauralOsc2.type = 'sine';
-binauralOsc2.frequency.value = baseFreq + beatFreq;
-
-const binauralGain = audioCtx.createGain();
-binauralGain.gain.value = 0.1;
-
-// Pan left/right
-const panLeft = audioCtx.createStereoPanner();
-panLeft.pan.value = -1;
-const panRight = audioCtx.createStereoPanner();
-panRight.pan.value = 1;
-
-binauralOsc1.connect(panLeft);
-binauralOsc2.connect(panRight);
-panLeft.connect(binauralGain);
-panRight.connect(binauralGain);
-binauralGain.connect(masterGain);
-
-binauralOsc1.start();
-binauralOsc2.start();
-window.binauralGain = binauralGain;
-}
-
-function stopBinaural() {
-if (binauralOsc1) {
-binauralOsc1.stop();
-binauralOsc2.stop();
-binauralOsc1 = null;
-binauralOsc2 = null;
-}
-}
-
-function playChime(x, y) {
-if (!audioCtx || Date.now() - lastChimeTime < 200) return;
-lastChimeTime = Date.now();
-
-const freq = 400 + (x / W) * 400; // Position-based pitch
-const osc = audioCtx.createOscillator();
-osc.type = 'sine';
-osc.frequency.value = freq;
-
-const gain = audioCtx.createGain();
-gain.gain.value = 0.15 * state.audioIntensity;
-gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1.5);
-
-osc.connect(gain);
-gain.connect(masterGain);
-osc.start();
-osc.stop(audioCtx.currentTime + 1.5);
-}
-
-// === INTERACTION HANDLING ===
-let isTouching = false;
-let lastTouchX = 0, lastTouchY = 0;
-let lastTapTime = 0;
-let longPressTimer = null;
-let heldBlob = null;
-let pinchStartDist = 0;
-let pinchStartZoom = 1;
-
-function isInLamp(x, y) {
-const { x: lx, y: ly, w, h } = lampBounds;
-const glassTop = ly + h * 0.15;
-const glassBottom = ly + h * 0.85;
-const glassLeft = lx + w * 0.12;
-const glassRight = lx + w * 0.88;
-return x > glassLeft && x < glassRight && y > glassTop && y < glassBottom;
-}
-
-function handleTouchStart(x, y) {
-initAudio();
-isTouching = true;
-lastTouchX = x;
-lastTouchY = y;
-
-// Double tap to reset zoom
-if (Date.now() - lastTapTime < 300) {
-state.zoom = 1;
-resize();
-return;
-}
-lastTapTime = Date.now();
-
-if (isInLamp(x, y)) {
-// Add heat point
-heatPoints.push({ x, y, strength: 1, life: 1 });
-
-// Long press detection
-longPressTimer = setTimeout(() => {
-// Find blob under finger
-for (let blob of blobs) {
-const dx = blob.x - x;
-const dy = blob.y - y;
-if (Math.sqrt(dx * dx + dy * dy) < blob.getEffectiveRadius()) {
-heldBlob = blob;
-break;
-}
-}
-}, 500);
-}
-}
-
-function handleTouchMove(x, y) {
-if (!isTouching) return;
-
-const dx = x - lastTouchX;
-const dy = y - lastTouchY;
-
-if (isInLamp(x, y)) {
-// Create current
-currents.push({
-x, y,
-vx: dx * 0.1,
-vy: dy * 0.1,
-strength: 0.5,
-radius: 80,
-life: 1
-});
-
-// Continuous heat
-heatPoints.push({ x, y, strength: 0.5, life: 0.5 });
-
-// If holding a blob, move it
-if (heldBlob) {
-heldBlob.x = x;
-heldBlob.y = y;
-heldBlob.vx = 0;
-heldBlob.vy = 0;
-}
-}
-
-lastTouchX = x;
-lastTouchY = y;
-}
-
-function handleTouchEnd() {
-isTouching = false;
-clearTimeout(longPressTimer);
-heldBlob = null;
-}
-
-function handlePinch(dist) {
-if (pinchStartDist > 0) {
-const scale = dist / pinchStartDist;
-state.zoom = Math.max(0.5, Math.min(2, pinchStartZoom * scale));
-resize();
-}
-}
-
-function handleTwoFingerSpread() {
-// Heat all blobs
-for (let blob of blobs) {
-blob.temperature = Math.min(1, blob.temperature + 0.3);
-}
-}
-
-// Mouse events
-canvas.addEventListener('mousedown', e => handleTouchStart(e.clientX, e.clientY));
-canvas.addEventListener('mousemove', e => {
-if (e.buttons) handleTouchMove(e.clientX, e.clientY);
-});
-canvas.addEventListener('mouseup', handleTouchEnd);
-canvas.addEventListener('mouseleave', handleTouchEnd);
-
-// Touch events
-let activeTouches = {};
-
-canvas.addEventListener('touchstart', e => {
-e.preventDefault();
-for (let t of e.changedTouches) {
-activeTouches[t.identifier] = { x: t.clientX, y: t.clientY };
-}
-
-const touches = Object.values(activeTouches);
-if (touches.length === 1) {
-handleTouchStart(touches[0].x, touches[0].y);
-} else if (touches.length === 2) {
-const dx = touches[1].x - touches[0].x;
-const dy = touches[1].y - touches[0].y;
-pinchStartDist = Math.sqrt(dx * dx + dy * dy);
-pinchStartZoom = state.zoom;
-
-// Two finger spread detection
-if (pinchStartDist > 100) {
-handleTwoFingerSpread();
-}
-}
-}, { passive: false });
-
-canvas.addEventListener('touchmove', e => {
-e.preventDefault();
-for (let t of e.changedTouches) {
-if (activeTouches[t.identifier]) {
-activeTouches[t.identifier] = { x: t.clientX, y: t.clientY };
-}
-}
-
-const touches = Object.values(activeTouches);
-if (touches.length === 1) {
-handleTouchMove(touches[0].x, touches[0].y);
-} else if (touches.length === 2) {
-const dx = touches[1].x - touches[0].x;
-const dy = touches[1].y - touches[0].y;
-handlePinch(Math.sqrt(dx * dx + dy * dy));
-}
-}, { passive: false });
-
-canvas.addEventListener('touchend', e => {
-for (let t of e.changedTouches) {
-delete activeTouches[t.identifier];
-}
-
-if (Object.keys(activeTouches).length === 0) {
-handleTouchEnd();
-pinchStartDist = 0;
-}
-});
-
-// Wheel zoom (desktop)
-canvas.addEventListener('wheel', e => {
-if (e.ctrlKey) {
-e.preventDefault();
-const delta = e.deltaY > 0 ? 0.95 : 1.05;
-state.zoom = Math.max(0.5, Math.min(2, state.zoom * delta));
-resize();
-}
-}, { passive: false });
-
-// === UI HANDLING ===
-const menuBubble = document.getElementById('menuBubble');
-const glassPanel = document.getElementById('glassPanel');
-const moodGrid = document.getElementById('moodGrid');
-
-// Generate mood buttons
-Object.entries(MOODS).forEach(([key, mood]) => {
-const btn = document.createElement('button');
-btn.className = 'mood-btn' + (key === state.mood ? ' active' : '');
-btn.dataset.mood = key;
-
-const preview = document.createElement('div');
-preview.className = 'mood-preview';
-mood.colors.slice(0, 4).forEach(color => {
-const span = document.createElement('span');
-span.style.background = color;
-preview.appendChild(span);
-});
-
-btn.appendChild(preview);
-btn.appendChild(document.createTextNode(mood.name));
-btn.onclick = () => selectMood(key);
-moodGrid.appendChild(btn);
-});
-
-function selectMood(moodKey) {
-state.mood = moodKey;
-localStorage.setItem('lavaMood', moodKey);
-document.querySelectorAll('.mood-btn').forEach(b => b.classList.toggle('active', b.dataset.mood === moodKey));
-}
-
-menuBubble.onclick = () => {
-menuBubble.classList.toggle('open');
-glassPanel.classList.toggle('open');
-};
-
-// Category toggles
-document.querySelectorAll('.category-bubble').forEach(bubble => {
-bubble.onclick = () => {
-bubble.classList.toggle('open');
-};
-});
-
-// Sliders
-document.getElementById('sizeSlider').oninput = e => {
-state.size = +e.target.value;
-document.getElementById('sizeVal').textContent = state.size;
-};
-
-document.getElementById('speedSlider').oninput = e => {
-state.speed = e.target.value / 100;
-document.getElementById('speedVal').textContent = e.target.value;
-};
-
-document.getElementById('glowSlider').oninput = e => {
-state.glow = e.target.value / 100;
-document.getElementById('glowVal').textContent = e.target.value;
-};
-
-document.getElementById('audioSlider').oninput = e => {
-state.audioIntensity = e.target.value / 100;
-document.getElementById('audioVal').textContent = e.target.value;
-initAudio();
-masterGain.gain.setTargetAtTime(state.audioIntensity * 0.3, audioCtx.currentTime, 0.3);
-};
-
-// Toggles
-document.getElementById('binauralFocus').onclick = function() {
-this.classList.toggle('on');
-document.getElementById('binauralRelax').classList.remove('on');
-state.binauralMode = this.classList.contains('on') ? 'focus' : null;
-initAudio();
-};
-
-document.getElementById('binauralRelax').onclick = function() {
-this.classList.toggle('on');
-document.getElementById('binauralFocus').classList.remove('on');
-state.binauralMode = this.classList.contains('on') ? 'relax' : null;
-initAudio();
-};
-
-document.getElementById('breathingToggle').onclick = function() {
-this.classList.toggle('on');
-state.breathingOn = this.classList.contains('on');
-document.getElementById('breathingGuide').classList.toggle('active', state.breathingOn);
-};
-
-// Timer
-let timerInterval = null;
-
-document.getElementById('timerSlider').oninput = e => {
-const mins = +e.target.value;
-document.getElementById('timerVal').textContent = mins > 0 ? mins + 'm' : 'Off';
-
-clearInterval(timerInterval);
-state.timerMins = mins;
-
-if (mins > 0) {
-state.timerRemaining = mins * 60;
-document.getElementById('timerDisplay').classList.add('active');
-updateTimerDisplay();
-timerInterval = setInterval(() => {
-state.timerRemaining--;
-updateTimerDisplay();
-if (state.timerRemaining <= 0) {
-clearInterval(timerInterval);
-document.getElementById('timerDisplay').classList.remove('active');
-}
-}, 1000);
-} else {
-document.getElementById('timerDisplay').classList.remove('active');
-}
-};
-
-function updateTimerDisplay() {
-const m = Math.floor(state.timerRemaining / 60);
-const s = state.timerRemaining % 60;
-document.getElementById('timerText').textContent = `${m}:${s.toString().padStart(2, '0')}`;
-}
-
-// Remix button
-document.getElementById('remixBtn').onclick = () => {
-const moodKeys = Object.keys(MOODS);
-const randomMood = moodKeys[Math.floor(Math.random() * moodKeys.length)];
-selectMood(randomMood);
-};
-
-// Breathing animation
-function updateBreathing() {
-if (!state.breathingOn) return;
-
-const cycle = 8000; // 8 second cycle
-const phase = (Date.now() % cycle) / cycle;
-const breathEl = document.getElementById('breathingGuide');
-const circle = breathEl.querySelector('.breath-circle');
-const text = document.getElementById('breathText');
-
-if (phase < 0.5) {
-// Inhale
-const scale = 0.6 + phase * 0.8;
-circle.style.transform = `scale(${scale})`;
-circle.style.borderColor = `rgba(255,255,255,${0.1 + phase * 0.3})`;
-text.textContent = phase < 0.4 ? 'inhale' : 'hold';
-} else {
-// Exhale
-const scale = 1.4 - (phase - 0.5) * 0.8;
-circle.style.transform = `scale(${scale})`;
-circle.style.borderColor = `rgba(255,255,255,${0.4 - (phase - 0.5) * 0.3})`;
-text.textContent = 'exhale';
-}
-}
-
-// === MAIN LOOP ===
-let lastTime = 0;
-
-function loop(time) {
-const dt = Math.min((time - lastTime) / 1000, 0.05);
-lastTime = time;
-
-// Update blobs
-updateBlobs(dt, time);
-
-// Draw lamp and blobs
-drawLamp(time);
-
-// Update audio
-updateAudio(dt);
-
-// Update breathing
-updateBreathing();
-
-requestAnimationFrame(loop);
-}
-
-// Initialize
-initBlobs();
-loop(0);
-
-// Show hint briefly
-setTimeout(() => {
-document.getElementById('hint').classList.add('show');
-}, 1000);
-
-// === CANVAS CONTEXT ROUNDRECT POLYFILL ===
-if (!CanvasRenderingContext2D.prototype.roundRect) {
-CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, radii) {
-if (typeof radii === 'undefined') radii = [0,0,0,0];
-if (typeof radii === 'number') radii = [radii, radii, radii, radii];
-
-const [tl, tr, br, bl] = radii;
-this.moveTo(x + tl, y);
-this.lineTo(x + w - tr, y);
-this.quadraticCurveTo(x + w, y, x + w, y + tr);
-this.lineTo(x + w, y + h - br);
-this.quadraticCurveTo(x + w, y + h, x + w - br, y + h);
-this.lineTo(x + bl, y + h);
-this.quadraticCurveTo(x, y + h, x, y + h - bl);
-this.lineTo(x, y + tl);
-this.quadraticCurveTo(x, y, x + tl, y);
-this.closePath();
-return this;
-};
-}
-</script>
+    <div class="loading" id="loading">
+        <div class="loading-lamp">
+            <div class="loading-blob"></div>
+        </div>
+        <div class="loading-text">Igniting the lava...</div>
+    </div>
+    
+    <div id="canvas-container"></div>
+    
+    <div class="instructions" id="instructions">
+        <h2>✨ Lava Lamp</h2>
+        <p>Tap glass to heat the lava<br>
+        Drag to rotate • Pinch to zoom<br>
+        Double-tap to reset view</p>
+    </div>
+    
+    <button class="audio-btn" id="audioBtn" title="Toggle Audio">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M11 5L6 9H2v6h4l5 4V5z"/>
+            <path class="audio-waves" d="M15.54 8.46a5 5 0 0 1 0 7.07M19.07 4.93a10 10 0 0 1 0 14.14"/>
+        </svg>
+    </button>
+    
+    <div class="quality-toggle">
+        <button class="quality-btn" id="qualityBtn">Quality: High</button>
+    </div>
+    
+    <div class="fps-counter" id="fps"></div>
+    
+    <div class="mood-selector">
+        <div class="mood-bubble mood-cosmic active" data-mood="cosmic" title="Cosmic"></div>
+        <div class="mood-bubble mood-ocean" data-mood="ocean" title="Ocean"></div>
+        <div class="mood-bubble mood-ember" data-mood="ember" title="Ember"></div>
+        <div class="mood-bubble mood-aurora" data-mood="aurora" title="Aurora"></div>
+        <div class="mood-bubble mood-sunset" data-mood="sunset" title="Sunset"></div>
+        <div class="mood-bubble mood-nebula" data-mood="nebula" title="Nebula"></div>
+    </div>
+
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+        }
+    }
+    </script>
+    
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+        import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+        import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+        import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+
+        // ============================================
+        // MOOD COLOR SYSTEM
+        // ============================================
+        const MOODS = {
+            cosmic: {
+                primary: new THREE.Color(0x667eea),
+                secondary: new THREE.Color(0x764ba2),
+                emissive: new THREE.Color(0x8b5cf6),
+                ambient: 0x0f0f1a,
+                gradient: ['#667eea', '#764ba2']
+            },
+            ocean: {
+                primary: new THREE.Color(0x00c6fb),
+                secondary: new THREE.Color(0x005bea),
+                emissive: new THREE.Color(0x06b6d4),
+                ambient: 0x0a1428,
+                gradient: ['#00c6fb', '#005bea']
+            },
+            ember: {
+                primary: new THREE.Color(0xf093fb),
+                secondary: new THREE.Color(0xf5576c),
+                emissive: new THREE.Color(0xff6b6b),
+                ambient: 0x1f0a14,
+                gradient: ['#f093fb', '#f5576c']
+            },
+            aurora: {
+                primary: new THREE.Color(0x4facfe),
+                secondary: new THREE.Color(0x00f2fe),
+                emissive: new THREE.Color(0x22d3ee),
+                ambient: 0x0a1420,
+                gradient: ['#4facfe', '#00f2fe']
+            },
+            sunset: {
+                primary: new THREE.Color(0xfa709a),
+                secondary: new THREE.Color(0xfee140),
+                emissive: new THREE.Color(0xfb923c),
+                ambient: 0x1a100a,
+                gradient: ['#fa709a', '#fee140']
+            },
+            nebula: {
+                primary: new THREE.Color(0xa8edea),
+                secondary: new THREE.Color(0xfed6e3),
+                emissive: new THREE.Color(0xc4b5fd),
+                ambient: 0x14101a,
+                gradient: ['#a8edea', '#fed6e3']
+            }
+        };
+
+        let currentMood = 'cosmic';
+        let qualityLevel = 'high';
+
+        // ============================================
+        // GLOBALS
+        // ============================================
+        let scene, camera, renderer, composer, controls;
+        let lampGroup, glassVessel, lavaVolume;
+        let clock = new THREE.Clock();
+        let frameCount = 0;
+        let lastTime = performance.now();
+        
+        const LAMP_HEIGHT = 4.5;
+        const LAMP_BASE_Y = 0;
+        const PARTICLE_COUNT_HIGH = 80;
+        const PARTICLE_COUNT_ULTRA = 120;
+        
+        // ============================================
+        // FLUID SIMULATION (SPH-inspired with Metaballs)
+        // ============================================
+        class LavaSimulation {
+            constructor(count) {
+                this.particleCount = count;
+                this.particles = [];
+                this.positions = new Float32Array(count * 4); // x, y, z, size
+                this.velocities = [];
+                this.temperatures = new Float32Array(count);
+                
+                this.init();
+            }
+            
+            init() {
+                for (let i = 0; i < this.particleCount; i++) {
+                    // Start particles in bottom region
+                    const angle = Math.random() * Math.PI * 2;
+                    const radius = Math.random() * 0.35;
+                    const y = 0.7 + Math.random() * 0.8;
+                    
+                    this.positions[i * 4] = Math.cos(angle) * radius;
+                    this.positions[i * 4 + 1] = y;
+                    this.positions[i * 4 + 2] = Math.sin(angle) * radius;
+                    this.positions[i * 4 + 3] = 0.12 + Math.random() * 0.08; // size
+                    
+                    this.velocities.push(new THREE.Vector3(
+                        (Math.random() - 0.5) * 0.01,
+                        (Math.random() - 0.5) * 0.005,
+                        (Math.random() - 0.5) * 0.01
+                    ));
+                    
+                    this.temperatures[i] = 0.3 + Math.random() * 0.4;
+                }
+            }
+            
+            update(dt, heatPoints, lampProfile) {
+                const gravity = -0.005;
+                const buoyancy = 0.025;
+                const viscosity = 0.96;
+                const heatRise = 0.02;
+                const coolSink = 0.015;
+                
+                for (let i = 0; i < this.particleCount; i++) {
+                    const idx = i * 4;
+                    const pos = new THREE.Vector3(
+                        this.positions[idx],
+                        this.positions[idx + 1],
+                        this.positions[idx + 2]
+                    );
+                    const vel = this.velocities[i];
+                    let temp = this.temperatures[i];
+                    
+                    // Heat from bottom
+                    if (pos.y < 1.5) {
+                        temp += (1.5 - pos.y) * 0.008;
+                    }
+                    
+                    // Cool at top
+                    if (pos.y > LAMP_HEIGHT - 1.2) {
+                        temp -= (pos.y - (LAMP_HEIGHT - 1.2)) * 0.006;
+                    }
+                    
+                    // Heat from interaction points
+                    for (const hp of heatPoints) {
+                        const dist = pos.distanceTo(hp.position);
+                        if (dist < 1.2) {
+                            temp += (1.2 - dist) * 0.03;
+                            // Attract toward heat
+                            const dir = hp.position.clone().sub(pos).normalize();
+                            vel.add(dir.multiplyScalar(0.008 * (1.2 - dist)));
+                        }
+                    }
+                    
+                    temp = Math.max(0, Math.min(1, temp));
+                    this.temperatures[i] = temp;
+                    
+                    // Buoyancy based on temperature
+                    const buoyancyForce = (temp - 0.5) * buoyancy;
+                    vel.y += buoyancyForce;
+                    
+                    // Gravity
+                    vel.y += gravity;
+                    
+                    // Particle-particle interaction (simplified SPH)
+                    for (let j = 0; j < this.particleCount; j++) {
+                        if (i === j) continue;
+                        const jdx = j * 4;
+                        const otherPos = new THREE.Vector3(
+                            this.positions[jdx],
+                            this.positions[jdx + 1],
+                            this.positions[jdx + 2]
+                        );
+                        const diff = pos.clone().sub(otherPos);
+                        const dist = diff.length();
+                        
+                        if (dist < 0.4 && dist > 0.01) {
+                            // Soft repulsion
+                            const force = diff.normalize().multiplyScalar(0.003 / (dist * dist + 0.01));
+                            vel.add(force);
+                            
+                            // Hot particles attract slightly (merging)
+                            if (temp > 0.6 && this.temperatures[j] > 0.6 && dist > 0.15) {
+                                vel.sub(force.multiplyScalar(0.3));
+                            }
+                        }
+                    }
+                    
+                    // Viscosity
+                    vel.multiplyScalar(viscosity);
+                    
+                    // Clamp velocity
+                    vel.clampLength(0, 0.08);
+                    
+                    // Update position
+                    pos.add(vel.clone().multiplyScalar(dt * 60));
+                    
+                    // Constrain to lamp shape
+                    this.constrainToLamp(pos, vel, i);
+                    
+                    // Write back
+                    this.positions[idx] = pos.x;
+                    this.positions[idx + 1] = pos.y;
+                    this.positions[idx + 2] = pos.z;
+                    
+                    // Size pulsing based on temperature
+                    const targetSize = 0.12 + temp * 0.08 + Math.sin(clock.getElapsedTime() * 2 + i) * 0.015;
+                    this.positions[idx + 3] += (targetSize - this.positions[idx + 3]) * 0.1;
+                }
+            }
+            
+            constrainToLamp(pos, vel, particleIndex) {
+                // Vertical bounds
+                const minY = 0.65;
+                const maxY = LAMP_HEIGHT - 0.7;
+                
+                if (pos.y < minY) {
+                    pos.y = minY;
+                    vel.y *= -0.3;
+                }
+                if (pos.y > maxY) {
+                    pos.y = maxY;
+                    vel.y *= -0.3;
+                }
+                
+                // Get lamp radius at this height
+                const heightRatio = (pos.y - 0.4) / (LAMP_HEIGHT - 0.8);
+                let maxRadius;
+                
+                if (heightRatio < 0.05) {
+                    maxRadius = 0.35;
+                } else if (heightRatio < 0.15) {
+                    maxRadius = 0.35 + (heightRatio - 0.05) * 3;
+                } else if (heightRatio < 0.35) {
+                    maxRadius = 0.65 + Math.sin((heightRatio - 0.15) * Math.PI / 0.2) * 0.08;
+                } else if (heightRatio < 0.65) {
+                    maxRadius = 0.65 - (heightRatio - 0.35) * 0.15;
+                } else if (heightRatio < 0.85) {
+                    maxRadius = 0.60 - (heightRatio - 0.65) * 0.5;
+                } else {
+                    maxRadius = Math.max(0.1, 0.50 - (heightRatio - 0.85) * 1.5);
+                }
+                
+                maxRadius = Math.max(0.1, maxRadius - 0.1);
+                
+                const horizontalDist = Math.sqrt(pos.x * pos.x + pos.z * pos.z);
+                if (horizontalDist > maxRadius) {
+                    const scale = maxRadius / horizontalDist;
+                    pos.x *= scale;
+                    pos.z *= scale;
+                    
+                    // Bounce
+                    const normal = new THREE.Vector3(pos.x, 0, pos.z).normalize();
+                    const dot = vel.dot(normal);
+                    if (dot > 0) {
+                        vel.sub(normal.multiplyScalar(dot * 1.5));
+                    }
+                }
+            }
+        }
+
+        let lavaSim;
+        let lavaMaterial;
+        let heatPoints = [];
+
+        // ============================================
+        // INITIALIZATION
+        // ============================================
+        function init() {
+            // Scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(MOODS[currentMood].ambient);
+            scene.fog = new THREE.Fog(MOODS[currentMood].ambient, 8, 20);
+            
+            // Camera
+            camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 100);
+            camera.position.set(0, 2.5, 5.5);
+            
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ 
+                antialias: true,
+                powerPreference: "high-performance"
+            });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, qualityLevel === 'ultra' ? 3 : 2));
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.3;
+            renderer.outputColorSpace = THREE.SRGBColorSpace;
+            document.getElementById('canvas-container').appendChild(renderer.domElement);
+            
+            // Post-processing
+            setupPostProcessing();
+            
+            // Controls
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.minDistance = 3;
+            controls.maxDistance = 10;
+            controls.maxPolarAngle = Math.PI * 0.85;
+            controls.minPolarAngle = Math.PI * 0.15;
+            controls.target.set(0, LAMP_HEIGHT / 2, 0);
+            
+            // Double-tap reset
+            let lastTap = 0;
+            renderer.domElement.addEventListener('pointerdown', (e) => {
+                const now = Date.now();
+                if (now - lastTap < 300) {
+                    resetCamera();
+                }
+                lastTap = now;
+            });
+            
+            // Create scene elements
+            createEnvironment();
+            createLamp();
+            initLavaSimulation();
+            setupLighting();
+            setupInteraction();
+            
+            // Events
+            window.addEventListener('resize', onWindowResize);
+            
+            // Hide loading
+            setTimeout(() => {
+                document.getElementById('loading').classList.add('hidden');
+                setTimeout(() => {
+                    document.getElementById('instructions').classList.add('hidden');
+                }, 5000);
+            }, 1500);
+            
+            animate();
+        }
+
+        // ============================================
+        // POST-PROCESSING
+        // ============================================
+        function setupPostProcessing() {
+            composer = new EffectComposer(renderer);
+            
+            const renderPass = new RenderPass(scene, camera);
+            composer.addPass(renderPass);
+            
+            // Bloom for glow effect
+            const bloomPass = new UnrealBloomPass(
+                new THREE.Vector2(window.innerWidth, window.innerHeight),
+                1.2,
+                0.5,
+                0.7
+            );
+            composer.addPass(bloomPass);
+            
+            // God rays shader
+            const godRaysShader = {
+                uniforms: {
+                    tDiffuse: { value: null },
+                    uLightPos: { value: new THREE.Vector2(0.5, 0.6) },
+                    uExposure: { value: 0.3 },
+                    uDecay: { value: 0.95 },
+                    uDensity: { value: 0.6 },
+                    uWeight: { value: 0.4 },
+                    uSamples: { value: 50 }
+                },
+                vertexShader: `
+                    varying vec2 vUv;
+                    void main() {
+                        vUv = uv;
+                        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                    }
+                `,
+                fragmentShader: `
+                    uniform sampler2D tDiffuse;
+                    uniform vec2 uLightPos;
+                    uniform float uExposure;
+                    uniform float uDecay;
+                    uniform float uDensity;
+                    uniform float uWeight;
+                    uniform int uSamples;
+                    varying vec2 vUv;
+                    
+                    void main() {
+                        vec2 deltaTexCoord = (vUv - uLightPos) * (1.0 / float(uSamples)) * uDensity;
+                        vec2 texCoord = vUv;
+                        vec4 color = texture2D(tDiffuse, texCoord);
+                        float illuminationDecay = 1.0;
+                        
+                        for(int i = 0; i < 50; i++) {
+                            if(i >= uSamples) break;
+                            texCoord -= deltaTexCoord;
+                            vec4 sample_color = texture2D(tDiffuse, texCoord);
+                            sample_color *= illuminationDecay * uWeight;
+                            color += sample_color;
+                            illuminationDecay *= uDecay;
+                        }
+                        
+                        gl_FragColor = color * uExposure;
+                    }
+                `
+            };
+            
+            const godRaysPass = new ShaderPass(godRaysShader);
+            composer.addPass(godRaysPass);
+        }
+
+        // ============================================
+        // LAMP MODEL
+        // ============================================
+        function createLamp() {
+            lampGroup = new THREE.Group();
+            
+            // Chrome base
+            const baseProfile = [
+                new THREE.Vector2(0, 0),
+                new THREE.Vector2(0.78, 0),
+                new THREE.Vector2(0.85, 0.03),
+                new THREE.Vector2(0.72, 0.12),
+                new THREE.Vector2(0.55, 0.3),
+                new THREE.Vector2(0.48, 0.38)
+            ];
+            
+            const baseGeometry = new THREE.LatheGeometry(baseProfile, 64);
+            
+            const chromeMaterial = new THREE.MeshStandardMaterial({
+                color: 0xffffff,
+                metalness: 0.98,
+                roughness: 0.02,
+                envMapIntensity: 2
+            });
+            
+            const base = new THREE.Mesh(baseGeometry, chromeMaterial);
+            lampGroup.add(base);
+            
+            // Glass vessel
+            const glassProfile = createGlassProfile();
+            const glassGeometry = new THREE.LatheGeometry(glassProfile, 64);
+            
+            const glassMaterial = new THREE.MeshPhysicalMaterial({
+                color: 0xffffff,
+                metalness: 0,
+                roughness: 0.02,
+                transmission: 0.98,
+                thickness: 0.3,
+                ior: 1.5,
+                clearcoat: 1,
+                clearcoatRoughness: 0.05,
+                envMapIntensity: 1,
+                transparent: true,
+                side: THREE.DoubleSide,
+                depthWrite: false
+            });
+            
+            glassVessel = new THREE.Mesh(glassGeometry, glassMaterial);
+            glassVessel.position.y = 0.38;
+            lampGroup.add(glassVessel);
+            
+            // Chrome cap
+            const capProfile = [
+                new THREE.Vector2(0, LAMP_HEIGHT - 0.35),
+                new THREE.Vector2(0.3, LAMP_HEIGHT - 0.32),
+                new THREE.Vector2(0.42, LAMP_HEIGHT - 0.28),
+                new THREE.Vector2(0.48, LAMP_HEIGHT - 0.22),
+                new THREE.Vector2(0.45, LAMP_HEIGHT - 0.15),
+                new THREE.Vector2(0.35, LAMP_HEIGHT - 0.1),
+                new THREE.Vector2(0.15, LAMP_HEIGHT - 0.08),
+                new THREE.Vector2(0, LAMP_HEIGHT - 0.08)
+            ];
+            
+            const capGeometry = new THREE.LatheGeometry(capProfile, 64);
+            const cap = new THREE.Mesh(capGeometry, chromeMaterial);
+            lampGroup.add(cap);
+            
+            // Decorative ring at base of glass
+            const ringGeometry = new THREE.TorusGeometry(0.50, 0.018, 16, 64);
+            const baseRing = new THREE.Mesh(ringGeometry, chromeMaterial);
+            baseRing.rotation.x = Math.PI / 2;
+            baseRing.position.y = 0.42;
+            lampGroup.add(baseRing);
+            
+            // Ring at top of glass
+            const topRing = baseRing.clone();
+            topRing.position.y = LAMP_HEIGHT - 0.48;
+            lampGroup.add(topRing);
+            
+            scene.add(lampGroup);
+        }
+        
+        function createGlassProfile() {
+            const points = [];
+            const segments = 60;
+            
+            for (let i = 0; i <= segments; i++) {
+                const t = i / segments;
+                const y = t * (LAMP_HEIGHT - 0.85);
+                
+                let x;
+                if (t < 0.05) {
+                    // Base transition
+                    x = 0.45 + t * 2;
+                } else if (t < 0.2) {
+                    // Lower bulge
+                    const lt = (t - 0.05) / 0.15;
+                    x = 0.55 + Math.sin(lt * Math.PI) * 0.12;
+                } else if (t < 0.5) {
+                    // Main body - slight taper
+                    const lt = (t - 0.2) / 0.3;
+                    x = 0.62 - lt * 0.05 + Math.sin(lt * Math.PI * 1.5) * 0.03;
+                } else if (t < 0.75) {
+                    // Upper body
+                    const lt = (t - 0.5) / 0.25;
+                    x = 0.57 - lt * 0.12;
+                } else {
+                    // Neck and top
+                    const lt = (t - 0.75) / 0.25;
+                    x = 0.45 - lt * 0.08;
+                }
+                
+                points.push(new THREE.Vector2(x, y));
+            }
+            
+            return points;
+        }
+
+        // ============================================
+        // LAVA SIMULATION & RENDERING
+        // ============================================
+        function initLavaSimulation() {
+            const count = qualityLevel === 'ultra' ? PARTICLE_COUNT_ULTRA : PARTICLE_COUNT_HIGH;
+            lavaSim = new LavaSimulation(count);
+            
+            // Create metaball shader material
+            lavaMaterial = new THREE.ShaderMaterial({
+                uniforms: {
+                    uTime: { value: 0 },
+                    uParticles: { value: lavaSim.positions },
+                    uParticleCount: { value: count },
+                    uColor1: { value: MOODS[currentMood].primary },
+                    uColor2: { value: MOODS[currentMood].secondary },
+                    uEmissive: { value: MOODS[currentMood].emissive },
+                    uLampBoundsMin: { value: new THREE.Vector3(-0.5, 0.5, -0.5) },
+                    uLampBoundsMax: { value: new THREE.Vector3(0.5, LAMP_HEIGHT - 0.6, 0.5) }
+                },
+                vertexShader: `
+                    attribute float aSize;
+                    attribute float aTemperature;
+                    
+                    varying vec3 vPosition;
+                    varying vec3 vNormal;
+                    varying float vTemperature;
+                    varying float vSize;
+                    
+                    void main() {
+                        vPosition = position;
+                        vNormal = normalize(normalMatrix * normal);
+                        vTemperature = aTemperature;
+                        vSize = aSize;
+                        
+                        vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+                        gl_PointSize = aSize * 800.0 / -mvPosition.z;
+                        gl_Position = projectionMatrix * mvPosition;
+                    }
+                `,
+                fragmentShader: `
+                    uniform float uTime;
+                    uniform vec3 uColor1;
+                    uniform vec3 uColor2;
+                    uniform vec3 uEmissive;
+                    
+                    varying vec3 vPosition;
+                    varying vec3 vNormal;
+                    varying float vTemperature;
+                    varying float vSize;
+                    
+                    void main() {
+                        // Circular point with soft edge
+                        vec2 center = gl_PointCoord - 0.5;
+                        float dist = length(center);
+                        if (dist > 0.5) discard;
+                        
+                        // Soft blobby edge
+                        float alpha = 1.0 - smoothstep(0.3, 0.5, dist);
+                        
+                        // Height-based color gradient
+                        float heightRatio = (vPosition.y - 0.5) / 3.5;
+                        vec3 baseColor = mix(uColor1, uColor2, heightRatio);
+                        
+                        // Temperature-based intensity
+                        float tempGlow = vTemperature * 0.5 + 0.5;
+                        
+                        // Fresnel-like rim lighting
+                        vec3 viewDir = normalize(cameraPosition - vPosition);
+                        float rim = pow(1.0 - abs(dot(viewDir, vNormal)), 2.0);
+                        
+                        // Internal glow (subsurface scattering approximation)
+                        float internalGlow = (1.0 - dist * 2.0) * tempGlow;
+                        
+                        // Pulsing effect
+                        float pulse = sin(uTime * 2.0 + vPosition.y * 2.0) * 0.1 + 0.9;
+                        
+                        // Combine colors
+                        vec3 finalColor = baseColor * tempGlow;
+                        finalColor += uEmissive * internalGlow * pulse;
+                        finalColor += uEmissive * rim * 0.3;
+                        
+                        // Extra glow at core
+                        finalColor += uEmissive * (1.0 - dist * 2.0) * 0.4 * tempGlow;
+                        
+                        gl_FragColor = vec4(finalColor, alpha * 0.92);
+                    }
+                `,
+                transparent: true,
+                depthWrite: false,
+                blending: THREE.AdditiveBlending
+            });
+            
+            // Create points geometry
+            const geometry = new THREE.BufferGeometry();
+            const positions = new Float32Array(count * 3);
+            const sizes = new Float32Array(count);
+            const temperatures = new Float32Array(count);
+            
+            for (let i = 0; i < count; i++) {
+                positions[i * 3] = lavaSim.positions[i * 4];
+                positions[i * 3 + 1] = lavaSim.positions[i * 4 + 1];
+                positions[i * 3 + 2] = lavaSim.positions[i * 4 + 2];
+                sizes[i] = lavaSim.positions[i * 4 + 3];
+                temperatures[i] = lavaSim.temperatures[i];
+            }
+            
+            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            geometry.setAttribute('aSize', new THREE.BufferAttribute(sizes, 1));
+            geometry.setAttribute('aTemperature', new THREE.BufferAttribute(temperatures, 1));
+            
+            lavaVolume = new THREE.Points(geometry, lavaMaterial);
+            lavaVolume.position.y = 0.38;
+            lampGroup.add(lavaVolume);
+            
+            // Create connecting blobs for merged look
+            createBlobConnectors();
+        }
+        
+        // Create additional metaball-like connections
+        function createBlobConnectors() {
+            const connectorMaterial = new THREE.ShaderMaterial({
+                uniforms: {
+                    uTime: { value: 0 },
+                    uColor1: { value: MOODS[currentMood].primary },
+                    uColor2: { value: MOODS[currentMood].secondary },
+                    uEmissive: { value: MOODS[currentMood].emissive }
+                },
+                vertexShader: `
+                    varying vec3 vPosition;
+                    varying vec3 vNormal;
+                    
+                    void main() {
+                        vPosition = (modelMatrix * vec4(position, 1.0)).xyz;
+                        vNormal = normalize(normalMatrix * normal);
+                        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                    }
+                `,
+                fragmentShader: `
+                    uniform float uTime;
+                    uniform vec3 uColor1;
+                    uniform vec3 uColor2;
+                    uniform vec3 uEmissive;
+                    
+                    varying vec3 vPosition;
+                    varying vec3 vNormal;
+                    
+                    void main() {
+                        float heightRatio = (vPosition.y - 0.5) / 3.5;
+                        vec3 baseColor = mix(uColor1, uColor2, heightRatio);
+                        
+                        vec3 viewDir = normalize(cameraPosition - vPosition);
+                        float fresnel = pow(1.0 - abs(dot(viewDir, vNormal)), 2.5);
+                        
+                        vec3 color = baseColor + uEmissive * fresnel * 0.5;
+                        color += uEmissive * 0.3 * (1.0 - fresnel);
+                        
+                        gl_FragColor = vec4(color, 0.7);
+                    }
+                `,
+                transparent: true,
+                depthWrite: false,
+                side: THREE.DoubleSide
+            });
+        }
+
+        function updateLava(dt) {
+            lavaSim.update(dt, heatPoints);
+            
+            // Update geometry
+            const positions = lavaVolume.geometry.attributes.position.array;
+            const sizes = lavaVolume.geometry.attributes.aSize.array;
+            const temperatures = lavaVolume.geometry.attributes.aTemperature.array;
+            
+            for (let i = 0; i < lavaSim.particleCount; i++) {
+                positions[i * 3] = lavaSim.positions[i * 4];
+                positions[i * 3 + 1] = lavaSim.positions[i * 4 + 1];
+                positions[i * 3 + 2] = lavaSim.positions[i * 4 + 2];
+                sizes[i] = lavaSim.positions[i * 4 + 3] * 30; // Scale for point size
+                temperatures[i] = lavaSim.temperatures[i];
+            }
+            
+            lavaVolume.geometry.attributes.position.needsUpdate = true;
+            lavaVolume.geometry.attributes.aSize.needsUpdate = true;
+            lavaVolume.geometry.attributes.aTemperature.needsUpdate = true;
+            
+            lavaMaterial.uniforms.uTime.value = clock.getElapsedTime();
+        }
+
+        // ============================================
+        // LIGHTING
+        // ============================================
+        let pointLight, ambientLight;
+        
+        function setupLighting() {
+            // Ambient
+            ambientLight = new THREE.AmbientLight(0x404050, 0.4);
+            scene.add(ambientLight);
+            
+            // Main internal light
+            pointLight = new THREE.PointLight(MOODS[currentMood].emissive, 3, 10);
+            pointLight.position.set(0, 1.8, 0);
+            lampGroup.add(pointLight);
+            
+            // Secondary glow light
+            const glowLight = new THREE.PointLight(MOODS[currentMood].primary, 1.5, 6);
+            glowLight.position.set(0, 3, 0);
+            lampGroup.add(glowLight);
+            
+            // Rim lights
+            const rimLight1 = new THREE.DirectionalLight(0xffffff, 0.4);
+            rimLight1.position.set(4, 3, 4);
+            scene.add(rimLight1);
+            
+            const rimLight2 = new THREE.DirectionalLight(0xffffff, 0.3);
+            rimLight2.position.set(-4, 2, -4);
+            scene.add(rimLight2);
+            
+            // Create environment map
+            const pmremGenerator = new THREE.PMREMGenerator(renderer);
+            const envScene = new THREE.Scene();
+            envScene.background = new THREE.Color(0x0f0f1a);
+            
+            const envLight1 = new THREE.PointLight(0x667eea, 4, 15);
+            envLight1.position.set(3, 4, 3);
+            envScene.add(envLight1);
+            
+            const envLight2 = new THREE.PointLight(0xf5576c, 3, 15);
+            envLight2.position.set(-3, 2, -3);
+            envScene.add(envLight2);
+            
+            const envMap = pmremGenerator.fromScene(envScene).texture;
+            scene.environment = envMap;
+        }
+
+        // ============================================
+        // ENVIRONMENT
+        // ============================================
+        function createEnvironment() {
+            // Reflective floor
+            const floorGeometry = new THREE.CircleGeometry(12, 64);
+            const floorMaterial = new THREE.MeshStandardMaterial({
+                color: 0x0a0a10,
+                metalness: 0.9,
+                roughness: 0.2
+            });
+            const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+            floor.rotation.x = -Math.PI / 2;
+            floor.position.y = -0.01;
+            scene.add(floor);
+            
+            // Background particles
+            const bgCount = 300;
+            const bgGeometry = new THREE.BufferGeometry();
+            const bgPositions = new Float32Array(bgCount * 3);
+            
+            for (let i = 0; i < bgCount; i++) {
+                const theta = Math.random() * Math.PI * 2;
+                const phi = Math.random() * Math.PI;
+                const r = 6 + Math.random() * 8;
+                
+                bgPositions[i * 3] = r * Math.sin(phi) * Math.cos(theta);
+                bgPositions[i * 3 + 1] = r * Math.cos(phi);
+                bgPositions[i * 3 + 2] = r * Math.sin(phi) * Math.sin(theta);
+            }
+            
+            bgGeometry.setAttribute('position', new THREE.BufferAttribute(bgPositions, 3));
+            
+            const bgMaterial = new THREE.PointsMaterial({
+                color: MOODS[currentMood].primary,
+                size: 0.04,
+                transparent: true,
+                opacity: 0.5,
+                sizeAttenuation: true
+            });
+            
+            const bgParticles = new THREE.Points(bgGeometry, bgMaterial);
+            bgParticles.name = 'bgParticles';
+            scene.add(bgParticles);
+        }
+
+        // ============================================
+        // INTERACTION
+        // ============================================
+        const raycaster = new THREE.Raycaster();
+        const pointer = new THREE.Vector2();
+        let currentHeatPoint = null;
+        let isLongPress = false;
+        let longPressTimer = null;
+        
+        function setupInteraction() {
+            const canvas = renderer.domElement;
+            
+            canvas.addEventListener('pointerdown', onPointerDown);
+            canvas.addEventListener('pointermove', onPointerMove);
+            canvas.addEventListener('pointerup', onPointerUp);
+            canvas.addEventListener('pointercancel', onPointerUp);
+            
+            // Mood selection
+            document.querySelectorAll('.mood-bubble').forEach(bubble => {
+                bubble.addEventListener('click', () => {
+                    document.querySelectorAll('.mood-bubble').forEach(b => b.classList.remove('active'));
+                    bubble.classList.add('active');
+                    setMood(bubble.dataset.mood);
+                });
+            });
+            
+            // Quality toggle
+            document.getElementById('qualityBtn').addEventListener('click', toggleQuality);
+            
+            // Audio toggle
+            document.getElementById('audioBtn').addEventListener('click', toggleAudio);
+        }
+        
+        function onPointerDown(e) {
+            isLongPress = false;
+            clearTimeout(longPressTimer);
+            longPressTimer = setTimeout(() => { isLongPress = true; }, 400);
+            
+            updatePointer(e);
+            raycaster.setFromCamera(pointer, camera);
+            
+            const intersects = raycaster.intersectObject(glassVessel);
+            if (intersects.length > 0) {
+                const point = intersects[0].point;
+                currentHeatPoint = { position: point, startTime: Date.now() };
+                heatPoints.push(currentHeatPoint);
+            }
+        }
+        
+        function onPointerMove(e) {
+            if (currentHeatPoint) {
+                updatePointer(e);
+                raycaster.setFromCamera(pointer, camera);
+                const intersects = raycaster.intersectObject(glassVessel);
+                if (intersects.length > 0) {
+                    currentHeatPoint.position = intersects[0].point;
+                }
+            }
+        }
+        
+        function onPointerUp() {
+            clearTimeout(longPressTimer);
+            if (currentHeatPoint) {
+                const hp = currentHeatPoint;
+                setTimeout(() => {
+                    const idx = heatPoints.indexOf(hp);
+                    if (idx > -1) heatPoints.splice(idx, 1);
+                }, isLongPress ? 2500 : 800);
+            }
+            currentHeatPoint = null;
+            isLongPress = false;
+        }
+        
+        function updatePointer(e) {
+            const rect = renderer.domElement.getBoundingClientRect();
+            pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+            pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+        }
+
+        // ============================================
+        // MOOD SYSTEM
+        // ============================================
+        function setMood(mood) {
+            currentMood = mood;
+            const config = MOODS[mood];
+            
+            scene.background = new THREE.Color(config.ambient);
+            scene.fog.color = new THREE.Color(config.ambient);
+            
+            lavaMaterial.uniforms.uColor1.value = config.primary;
+            lavaMaterial.uniforms.uColor2.value = config.secondary;
+            lavaMaterial.uniforms.uEmissive.value = config.emissive;
+            
+            pointLight.color = config.emissive;
+            
+            const bgParticles = scene.getObjectByName('bgParticles');
+            if (bgParticles) bgParticles.material.color = config.primary;
+            
+            if (audioContext && audioEnabled) playChime(config.emissive);
+        }
+
+        // ============================================
+        // QUALITY TOGGLE
+        // ============================================
+        function toggleQuality() {
+            const btn = document.getElementById('qualityBtn');
+            qualityLevel = qualityLevel === 'high' ? 'ultra' : 'high';
+            btn.textContent = `Quality: ${qualityLevel.charAt(0).toUpperCase() + qualityLevel.slice(1)}`;
+            btn.classList.toggle('ultra', qualityLevel === 'ultra');
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, qualityLevel === 'ultra' ? 3 : 2));
+            
+            // Reinit simulation with new particle count
+            lampGroup.remove(lavaVolume);
+            initLavaSimulation();
+        }
+
+        // ============================================
+        // AUDIO SYSTEM
+        // ============================================
+        let audioContext = null;
+        let audioEnabled = false;
+        let masterGain = null;
+        let droneOscillators = [];
+        let lastChimeTime = 0;
+        
+        function initAudio() {
+            if (audioContext) return;
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            masterGain = audioContext.createGain();
+            masterGain.gain.value = 0;
+            masterGain.connect(audioContext.destination);
+            createDrone();
+        }
+        
+        function createDrone() {
+            const baseFreq = 55;
+            const freqs = [baseFreq, baseFreq * 1.5, baseFreq * 2, baseFreq * 3];
+            
+            freqs.forEach((freq, i) => {
+                const osc = audioContext.createOscillator();
+                const gain = audioContext.createGain();
+                const filter = audioContext.createBiquadFilter();
+                
+                osc.type = i % 2 === 0 ? 'sine' : 'triangle';
+                osc.frequency.value = freq;
+                
+                filter.type = 'lowpass';
+                filter.frequency.value = 600 + Math.random() * 300;
+                
+                gain.gain.value = 0.08 / (i + 1);
+                
+                const lfo = audioContext.createOscillator();
+                const lfoGain = audioContext.createGain();
+                lfo.frequency.value = 0.05 + Math.random() * 0.15;
+                lfoGain.gain.value = freq * 0.015;
+                lfo.connect(lfoGain);
+                lfoGain.connect(osc.frequency);
+                lfo.start();
+                
+                osc.connect(filter);
+                filter.connect(gain);
+                gain.connect(masterGain);
+                osc.start();
+                
+                droneOscillators.push({ osc, gain, filter, lfo });
+            });
+        }
+        
+        function playChime(color) {
+            if (!audioContext || !audioEnabled) return;
+            
+            const now = Date.now();
+            if (now - lastChimeTime < 150) return;
+            lastChimeTime = now;
+            
+            const hsl = { h: 0, s: 0, l: 0 };
+            color.getHSL(hsl);
+            const baseFreq = 300 + hsl.h * 400;
+            
+            const osc = audioContext.createOscillator();
+            const gain = audioContext.createGain();
+            const filter = audioContext.createBiquadFilter();
+            
+            osc.type = 'sine';
+            osc.frequency.value = baseFreq * (1 + Math.random() * 0.05);
+            
+            filter.type = 'bandpass';
+            filter.frequency.value = baseFreq;
+            filter.Q.value = 8;
+            
+            gain.gain.setValueAtTime(0.15, audioContext.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 1.2);
+            
+            osc.connect(filter);
+            filter.connect(gain);
+            gain.connect(masterGain);
+            
+            osc.start();
+            osc.stop(audioContext.currentTime + 1.2);
+        }
+        
+        function toggleAudio() {
+            if (!audioContext) initAudio();
+            
+            audioEnabled = !audioEnabled;
+            const btn = document.getElementById('audioBtn');
+            btn.classList.toggle('active', audioEnabled);
+            
+            if (audioEnabled) {
+                if (audioContext.state === 'suspended') audioContext.resume();
+                masterGain.gain.linearRampToValueAtTime(0.3, audioContext.currentTime + 0.5);
+            } else {
+                masterGain.gain.linearRampToValueAtTime(0, audioContext.currentTime + 0.5);
+            }
+        }
+
+        // ============================================
+        // ANIMATION LOOP
+        // ============================================
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            const dt = Math.min(clock.getDelta(), 0.05);
+            frameCount++;
+            
+            // FPS counter
+            if (frameCount % 30 === 0) {
+                const now = performance.now();
+                const fps = Math.round(30000 / (now - lastTime));
+                document.getElementById('fps').textContent = `${fps} FPS`;
+                lastTime = now;
+            }
+            
+            // Update lava
+            updateLava(dt);
+            
+            // Update controls
+            controls.update();
+            
+            // Animate lights
+            const time = clock.getElapsedTime();
+            pointLight.intensity = 3 + Math.sin(time * 1.3) * 0.4;
+            pointLight.position.y = 1.8 + Math.sin(time * 0.4) * 0.15;
+            
+            // Rotate background
+            const bgParticles = scene.getObjectByName('bgParticles');
+            if (bgParticles) bgParticles.rotation.y += 0.0003;
+            
+            // Subtle lamp rotation
+            lampGroup.rotation.y = Math.sin(time * 0.15) * 0.015;
+            
+            // Check for blob merges - play chimes
+            if (frameCount % 45 === 0 && audioEnabled) {
+                checkBlobMerges();
+            }
+            
+            // Render
+            composer.render();
+        }
+        
+        function checkBlobMerges() {
+            for (let i = 0; i < lavaSim.particleCount; i++) {
+                for (let j = i + 1; j < lavaSim.particleCount; j++) {
+                    const dx = lavaSim.positions[i*4] - lavaSim.positions[j*4];
+                    const dy = lavaSim.positions[i*4+1] - lavaSim.positions[j*4+1];
+                    const dz = lavaSim.positions[i*4+2] - lavaSim.positions[j*4+2];
+                    const dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
+                    
+                    if (dist < 0.18 && lavaSim.temperatures[i] > 0.5 && lavaSim.temperatures[j] > 0.5) {
+                        if (Math.random() < 0.08) {
+                            playChime(MOODS[currentMood].emissive);
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+
+        // ============================================
+        // UTILITIES
+        // ============================================
+        function resetCamera() {
+            const targetPos = new THREE.Vector3(0, 2.5, 5.5);
+            const startPos = camera.position.clone();
+            const duration = 800;
+            const startTime = Date.now();
+            
+            function animateReset() {
+                const elapsed = Date.now() - startTime;
+                const t = Math.min(elapsed / duration, 1);
+                const eased = 1 - Math.pow(1 - t, 3);
+                
+                camera.position.lerpVectors(startPos, targetPos, eased);
+                controls.target.lerp(new THREE.Vector3(0, LAMP_HEIGHT / 2, 0), eased * 0.1);
+                
+                if (t < 1) requestAnimationFrame(animateReset);
+            }
+            animateReset();
+        }
+        
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            composer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        // ============================================
+        // WEBGL CONTEXT HANDLING
+        // ============================================
+        document.addEventListener('webglcontextlost', (e) => {
+            e.preventDefault();
+            console.warn('WebGL context lost');
+        });
+        
+        document.addEventListener('webglcontextrestored', () => {
+            console.log('WebGL context restored');
+            init();
+        });
+
+        // Start
+        init();
+        
+        // Debug API
+        window.lavaLamp = {
+            setMood,
+            toggleQuality,
+            toggleAudio,
+            resetCamera,
+            getStats: () => ({
+                particles: lavaSim.particleCount,
+                quality: qualityLevel,
+                mood: currentMood
+            })
+        };
+    </script>
 </body>
 </html>
