@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Lava Flow - Meditation</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--hue:280;--glow:0.6;--panel-bg:rgba(20,10,30,0.85)}
+html,body{height:100%;overflow:hidden;font-family:'Segoe UI',sans-serif;background:#0a0510}
+#canvas{position:fixed;top:0;left:0;width:100%;height:100%;touch-action:none}
+.controls{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--panel-bg);backdrop-filter:blur(20px);border-radius:20px;padding:20px 25px;border:1px solid rgba(255,255,255,0.1);box-shadow:0 10px 40px rgba(0,0,0,0.5);z-index:100;max-width:90vw;transition:all 0.4s ease}
+.controls.collapsed{padding:15px 20px}.controls.collapsed .slider-group{display:none}
+.toggle-btn{position:absolute;top:-12px;right:20px;background:linear-gradient(135deg,#6b21a8,#be185d);border:none;border-radius:12px;padding:8px 16px;color:#fff;font-size:12px;font-weight:600;cursor:pointer;transition:transform 0.2s}
+.toggle-btn:hover{transform:scale(1.05)}
+.slider-group{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:15px;margin-top:10px}
+.slider-item{display:flex;flex-direction:column;gap:4px}
+.slider-item label{color:rgba(255,255,255,0.7);font-size:11px;text-transform:uppercase;letter-spacing:0.5px}
+.slider-item input[type="range"]{-webkit-appearance:none;width:100%;height:6px;border-radius:3px;background:rgba(255,255,255,0.1);outline:none}
+.slider-item input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:linear-gradient(135deg,#a855f7,#ec4899);cursor:pointer;box-shadow:0 2px 10px rgba(168,85,247,0.5)}
+.btn-row{display:flex;gap:10px;margin-top:15px;flex-wrap:wrap;justify-content:center}
+.btn{background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:10px;padding:10px 18px;color:#fff;font-size:13px;cursor:pointer;transition:all 0.2s}
+.btn:hover{background:rgba(255,255,255,0.2)}
+.btn.active{background:linear-gradient(135deg,#6b21a8,#be185d);border-color:transparent}
+.breathing-guide{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:200px;height:200px;border-radius:50%;border:2px solid rgba(255,255,255,0.1);pointer-events:none;opacity:0;transition:opacity 0.5s}
+.breathing-guide.active{opacity:1;animation:breathe 8s ease-in-out infinite}
+@keyframes breathe{0%,100%{transform:translate(-50%,-50%) scale(0.6);border-color:rgba(168,85,247,0.3)}50%{transform:translate(-50%,-50%) scale(1);border-color:rgba(236,72,153,0.5)}}
+.timer-display{position:fixed;top:20px;right:20px;background:var(--panel-bg);backdrop-filter:blur(10px);border-radius:12px;padding:12px 20px;color:#fff;font-size:18px;font-weight:300;border:1px solid rgba(255,255,255,0.1);opacity:0;transition:opacity 0.3s}
+.timer-display.active{opacity:1}
+.fullscreen-hint{position:fixed;top:20px;left:20px;color:rgba(255,255,255,0.3);font-size:12px}
+@media(max-width:600px){.controls{bottom:10px;padding:15px}.slider-group{grid-template-columns:1fr 1fr}.btn{padding:8px 14px;font-size:12px}}
+</style>
+</head>
+<body>
+<canvas id="canvas"></canvas>
+<div class="breathing-guide" id="breathingGuide"></div>
+<div class="timer-display" id="timerDisplay">5:00</div>
+<div class="fullscreen-hint">Press F for fullscreen</div>
+<div class="controls" id="controls">
+<button class="toggle-btn" onclick="toggleControls()">▲ Collapse</button>
+<div class="slider-group">
+<div class="slider-item"><label>🌈 Colors</label><input type="range" id="hue" min="0" max="360" value="280"></div>
+<div class="slider-item"><label>⚡ Speed</label><input type="range" id="speed" min="0.2" max="2" step="0.1" value="1"></div>
+<div class="slider-item"><label>🔘 Blob Size</label><input type="range" id="blobSize" min="20" max="80" value="45"></div>
+<div class="slider-item"><label>✨ Glow</label><input type="range" id="glow" min="0.1" max="1" step="0.05" value="0.6"></div>
+<div class="slider-item"><label>🌊 Wobble</label><input type="range" id="wobble" min="0" max="1" step="0.1" value="0.5"></div>
+<div class="slider-item"><label>🔊 Volume</label><input type="range" id="volume" min="0" max="1" step="0.05" value="0.3"></div>
+</div>
+<div class="btn-row">
+<button class="btn" id="audioBtn" onclick="toggleAudio()">🔇 Audio</button>
+<button class="btn" id="binauralBtn" onclick="toggleBinaural()">🧘 Binaural</button>
+<button class="btn" id="breathBtn" onclick="toggleBreathing()">💨 Breathing</button>
+<button class="btn" id="timerBtn" onclick="cycleTimer()">⏱️ Timer</button>
+<button class="btn" onclick="toggleFullscreen()">⛶ Fullscreen</button>
+</div>
+</div>
+
+<script>
+const canvas=document.getElementById('canvas'),ctx=canvas.getContext('2d');
+let W,H,blobs=[],touches=[],audioCtx=null,osc1=null,osc2=null,gainNode=null,binauralOsc=null;
+let audioOn=false,binauralOn=false,breathingOn=false,timerActive=false,timerSeconds=0,timerInterval=null;
+let settings={hue:280,speed:1,blobSize:45,glow:0.6,wobble:0.5,volume:0.3};
+
+function resize(){W=canvas.width=window.innerWidth;H=canvas.height=window.innerHeight}
+resize();window.addEventListener('resize',resize);
+
+class Blob{
+constructor(){this.reset()}
+reset(){
+this.x=Math.random()*W;this.y=H+50+Math.random()*100;
+this.vx=(Math.random()-0.5)*0.5;this.vy=-0.3-Math.random()*0.5;
+this.radius=settings.blobSize*(0.6+Math.random()*0.8);
+this.hueOffset=Math.random()*60-30;this.phase=Math.random()*Math.PI*2;
+this.wobbleSpeed=0.5+Math.random()*0.5;this.wobbleAmp=5+Math.random()*15;
+}
+update(dt){
+const speed=settings.speed;
+this.vy-=0.015*dt*60*speed;this.vy*=0.995;
+this.vx+==(Math.random()-0.5)*0.02*settings.wobble;
+this.x+=this.vx*dt*60*speed;this.y+=this.vy*dt*60*speed;
+this.phase+=this.wobbleSpeed*dt*speed;
+this.x+=Math.sin(this.phase)*this.wobbleAmp*settings.wobble*dt;
+for(let t of touches){
+const dx=t.x-this.x,dy=t.y-this.y,d=Math.sqrt(dx*dx+dy*dy);
+if(d<150){const force=(150-d)/150*0.5;this.vx+=dx/d*force;this.vy+=dy/d*force*0.5}
+}
+if(this.y<-this.radius*2||this.x<-100||this.x>W+100)this.reset();
+}
+draw(){
+const hue=(settings.hue+this.hueOffset)%360;
+const r=this.radius*(1+Math.sin(this.phase)*0.1*settings.wobble);
+ctx.save();ctx.globalAlpha=0.8;
+const grad=ctx.createRadialGradient(this.x,this.y,0,this.x,this.y,r);
+grad.addColorStop(0,`hsla(${hue},80%,60%,0.9)`);
+grad.addColorStop(0.5,`hsla(${hue},70%,50%,0.6)`);
+grad.addColorStop(1,`hsla(${hue},60%,40%,0)`);
+ctx.fillStyle=grad;ctx.beginPath();ctx.arc(this.x,this.y,r,0,Math.PI*2);ctx.fill();
+if(settings.glow>0.3){
+ctx.globalAlpha=settings.glow*0.4;
+ctx.shadowColor=`hsla(${hue},80%,60%,1)`;
+ctx.shadowBlur=30*settings.glow;
+ctx.fill();
+}
+ctx.restore();
+}
+}
+
+for(let i=0;i<15;i++){const b=new Blob();b.y=Math.random()*H;blobs.push(b)}
+
+function drawBackground(){
+const grad=ctx.createLinearGradient(0,0,0,H);
+grad.addColorStop(0,'#0a0510');grad.addColorStop(0.5,'#150a20');grad.addColorStop(1,'#1a0a25');
+ctx.fillStyle=grad;ctx.fillRect(0,0,W,H);
+}
+function drawTouchRipples(){
+for(let i=touches.length-1;i>=0;i--){
+const t=touches[i];t.life-=0.02;
+if(t.life<=0){touches.splice(i,1);continue}
+ctx.beginPath();ctx.arc(t.x,t.y,(1-t.life)*100,0,Math.PI*2);
+ctx.strokeStyle=`hsla(${settings.hue},70%,60%,${t.life*0.3})`;ctx.lineWidth=2;ctx.stroke();
+}
+}
+let lastTime=0;
+function animate(time){
+const dt=Math.min((time-lastTime)/1000,0.05);lastTime=time;
+drawBackground();
+for(let b of blobs)b.update(dt);
+touches.forEach(t=>{for(let b of blobs){const dx=t.x-b.x,dy=t.y-b.y,d=Math.sqrt(dx*dx+dy*dy);if(d<200){b.vx+=dx/d*0.3;b.vy+=dy/d*0.2-0.1}}});
+for(let b of blobs)b.draw();
+drawTouchRipples();
+requestAnimationFrame(animate);
+}
+animate(0);
+
+function addTouch(x,y){touches.push({x,y,life:1})}
+canvas.addEventListener('mousedown',e=>addTouch(e.clientX,e.clientY));
+canvas.addEventListener('mousemove',e=>{if(e.buttons)addTouch(e.clientX,e.clientY)});
+canvas.addEventListener('touchstart',e=>{e.preventDefault();for(let t of e.touches)addTouch(t.clientX,t.clientY)},{passive:false});
+canvas.addEventListener('touchmove',e=>{e.preventDefault();for(let t of e.touches)addTouch(t.clientX,t.clientY)},{passive:false});
+
+function initAudio(){
+if(audioCtx)return;
+audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+gainNode=audioCtx.createGain();gainNode.gain.value=settings.volume;gainNode.connect(audioCtx.destination);
+osc1=audioCtx.createOscillator();osc1.type='sine';osc1.frequency.value=60;osc1.connect(gainNode);
+osc2=audioCtx.createOscillator();osc2.type='sine';osc2.frequency.value=62;osc2.connect(gainNode);
+osc1.start();osc2.start();
+}
+function toggleAudio(){
+initAudio();
+audioOn=!audioOn;
+gainNode.gain.setTargetAtTime(audioOn?settings.volume:0,audioCtx.currentTime,0.3);
+document.getElementById('audioBtn').textContent=audioOn?'🔊 Audio':'🔇 Audio';
+document.getElementById('audioBtn').classList.toggle('active',audioOn);
+}
+function toggleBinaural(){
+if(!audioCtx)initAudio();
+binauralOn=!binauralOn;
+if(binauralOn&&!binauralOsc){
+binauralOsc=audioCtx.createOscillator();binauralOsc.type='sine';
+const binauralGain=audioCtx.createGain();binauralGain.gain.value=0.1;
+binauralOsc.frequency.value=200;binauralOsc.connect(binauralGain);binauralGain.connect(audioCtx.destination);binauralOsc.start();
+}
+if(binauralOsc)binauralOsc.frequency.setTargetAtTime(binauralOn?210:200,audioCtx.currentTime,0.5);
+document.getElementById('binauralBtn').classList.toggle('active',binauralOn);
+}
+function toggleBreathing(){
+breathingOn=!breathingOn;
+document.getElementById('breathingGuide').classList.toggle('active',breathingOn);
+document.getElementById('breathBtn').classList.toggle('active',breathingOn);
+}
+function cycleTimer(){
+const times=[0,300,600,900,1200];const labels=['⏱️ Timer','5 min','10 min','15 min','20 min'];
+const btn=document.getElementById('timerBtn'),display=document.getElementById('timerDisplay');
+if(timerInterval){clearInterval(timerInterval);timerInterval=null}
+const currentIdx=times.indexOf(timerSeconds);
+const nextIdx=(currentIdx+1)%times.length;
+timerSeconds=times[nextIdx];btn.textContent=labels[nextIdx];
+if(timerSeconds>0){
+timerActive=true;display.classList.add('active');display.textContent=formatTime(timerSeconds);
+timerInterval=setInterval(()=>{
+timerSeconds--;display.textContent=formatTime(timerSeconds);
+if(timerSeconds<=0){clearInterval(timerInterval);timerInterval=null;timerActive=false;display.classList.remove('active');btn.textContent='⏱️ Timer'}
+},1000);
+}else{timerActive=false;display.classList.remove('active')}
+btn.classList.toggle('active',timerActive);
+}
+function formatTime(s){const m=Math.floor(s/60),sec=s%60;return`${m}:${sec.toString().padStart(2,'0')}`}
+function toggleFullscreen(){if(!document.fullscreenElement)document.documentElement.requestFullscreen();else document.exitFullscreen()}
+function toggleControls(){
+const c=document.getElementById('controls'),btn=document.querySelector('.toggle-btn');
+c.classList.toggle('collapsed');btn.textContent=c.classList.contains('collapsed')?'▼ Expand':'▲ Collapse';
+}
+document.querySelectorAll('input[type="range"]').forEach(input=>{
+input.addEventListener('input',e=>{
+const id=e.target.id,val=parseFloat(e.target.value);
+if(id==='hue'){settings.hue=val;document.documentElement.style.setProperty('--hue',val)}
+else if(id==='volume'){settings.volume=val;if(gainNode&&audioOn)gainNode.gain.setTargetAtTime(val,audioCtx.currentTime,0.1)}
+else settings[id]=val;
+});
+});
+document.addEventListener('keydown',e=>{if(e.key==='f'||e.key==='F')toggleFullscreen()});
+</script>
+</body>
+</html>
