@@ -1358,8 +1358,23 @@
             init();
         });
 
-        // Start
-        init();
+        // Start - wait for all scripts to load
+        window.addEventListener('load', function() {
+            // Check if THREE loaded
+            if (typeof THREE === 'undefined') {
+                document.getElementById('loading').innerHTML = '<div style="color:#f55;text-align:center;padding:20px">Failed to load 3D library.<br>Please refresh or try Chrome.</div>';
+                return;
+            }
+            setTimeout(init, 100);
+        });
+        
+        // Fallback timeout - if loading takes too long
+        setTimeout(function() {
+            var loading = document.getElementById('loading');
+            if (loading && !loading.classList.contains('hidden')) {
+                loading.innerHTML = '<div style="color:#fa0;text-align:center;padding:20px">Taking too long? Try Chrome or tap to retry.</div>';
+            }
+        }, 10000);
         
         // Debug API
         window.lavaLamp = {
